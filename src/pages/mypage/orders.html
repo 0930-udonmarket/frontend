@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mypage-orders</title>
+
+    <link href="../../css/mypage/mypage-orders.css" rel="stylesheet">
+    <link rel="icon" href="../../../public/favicon.ico">
+</head>
+
+<body>
+    <div class="header">
+        <h1>header</h1>
+    </div>
+
+    <div class="main">
+        <div class="menu">
+            <div class="menu-title">마이페이지</div>
+            <div class="items">
+                <div class="home">홈</div>
+                <div class="orders active">거래 내역</div>
+                <div class="likes">관심 상품 (찜)</div>
+                <div class="reviews">내가 작성한 리뷰</div>
+                <div class="edit">내 정보 수정</div>
+                <div class="cs">고객센터</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="class">
+                <!-- select에 따라 디자인이 달라짐 -->
+                <button class="class-btn select" id="btn-ing">거래 중</button>
+                <button class="class-btn" id="btn-end">거래 완료</button>
+            </div>
+
+            <div class="transaction-container">
+                <!-- 거래 중인 (ing) transaction card -->
+                <!-- for-each -->
+                <div class="transaction-card ing">
+                    <div class="transaction-content">
+                        <div class="product-img"></div>
+                        <div class="product-info">
+                            <div class="product-title">1등급 한우 모듬 세트 (공동구매)</div>
+                            <div class="product-meta">2026.01.17 • 판매자: 행복한 정육점</div>
+                        </div>
+                        <div class="price">45,000원</div>
+                        <button class="move-btn">거래/채팅 이동</button>
+                    </div>
+                </div>
+
+                <div class="transaction-card ing">
+                    <div class="transaction-content">
+                        <div class="product-img"></div>
+                        <div class="product-info">
+                            <div class="product-title">1등급 한우 모듬 세트 (공동구매)</div>
+                            <div class="product-meta">2026.01.17 • 판매자: 행복한 정육점</div>
+                        </div>
+                        <div class="price">45,000원</div>
+                        <button class="move-btn">거래/채팅 이동</button>
+                    </div>
+                </div>
+
+                <!-- 거래 완료 (end) transaction card -->
+                <div class="transaction-card end">
+                    <div class="transaction-content">
+                        <div class="product-img"></div>
+                        <div class="product-info">
+                            <div class="product-title">1등급 한우 모듬 세트 (공동구매)</div>
+                            <div class="product-meta">2026.01.17 • 판매자: 행복한 정육점</div>
+                        </div>
+                        <div class="status">배송 중</div>
+                        <div class="btn-container">
+                            <button class="review-btn">리뷰 쓰기</button>
+                            <button class="check-btn">배송 조회</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="transaction-card end">
+                    <div class="transaction-content">
+                        <div class="product-img"></div>
+                        <div class="product-info">
+                            <div class="product-title">1등급 한우 모듬 세트 (공동구매)</div>
+                            <div class="product-meta">2026.01.17 • 판매자: 행복한 정육점</div>
+                        </div>
+                        <div class="status">배송 완료</div>
+                        <div class="btn-container">
+                            <button class="review-btn">리뷰 쓰기</button>
+                            <button class="check-btn">배송 조회</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.querySelector(".home")?.addEventListener('click', () => {
+            window.location.href = './home.html';
+        });
+
+        document.querySelector(".orders")?.addEventListener('click', () => {
+            window.location.href = './orders.html';
+        });
+
+        document.querySelector(".likes")?.addEventListener('click', () => {
+            window.location.href = './likes.html';
+        });
+
+        document.querySelector(".reviews")?.addEventListener('click', () => {
+            window.location.href = './reviews/list.html';
+        });
+
+        document.querySelector(".edit")?.addEventListener('click', () => {
+            window.location.href = './edit.html';
+        });
+
+        document.querySelector(".review-btn")?.addEventListener('click', () => {
+            window.location.href = './reviews/create.html';
+        })
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await fetchAllTransactions();
+            
+            filterCards('ing');
+        });
+
+        const btnIng = document.getElementById("btn-ing");
+        const btnEnd = document.getElementById("btn-end");
+
+        // 거래 중 버튼 클릭 시
+        btnIng.addEventListener('click', () => {
+            filterCards('ing');
+            setActiveButton(btnIng);
+        });
+
+        // 거래 완료 버튼 클릭 시
+        btnEnd.addEventListener('click', () => {
+            filterCards('end');
+            setActiveButton(btnEnd);
+
+        });
+
+        function filterCards(status) {
+            const allCards = document.querySelectorAll(".transaction-card");
+            
+            allCards.forEach(card => {
+                if (card.classList.contains(status)) {
+                    card.style.display = '';
+
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        };
+
+        function setActiveButton(activeBtn) {
+            btnIng.classList.remove('select');
+            btnEnd.classList.remove('select');
+            activeBtn.classList.add('select');
+        };
+
+        async function fetchAllTransactions() {
+            try {
+                const response = await fetch('http://'); // 실제 백엔드 주소
+                const transactions = await response.json();
+
+                displayTransactions(transactions);
+
+            } catch (error) {
+                console.error("데이터 로드 실패: ", error);
+            }
+        };
+        
+        function displayTransactions(transactions) {
+            const container = document.querySelector(".transaction-container");
+            container.innerHTML = "";
+
+            transactions.forEach(transaction => {
+                const card = document.createElement("div");
+                card.className = `transaction-card ${transaction.status}`;
+
+                let actionContent = "";
+                if (transaction.status === 'ing') { // status가 거래 중
+                    actionContent = `
+                        <div class="price">${transaction.price.toLocaleString()}</div>
+                        <button class="move-btn">거래/채팅 이동</button>
+                    `;
+                } else {
+                    actionContent = `
+                        <div class="status">${transaction.deliveryStatus}</div>
+                        <div class="btn-container">
+                            <button class="review-btn">리뷰 쓰기</button>
+                            <button class="check-btn">배송 조회</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="transaction-content">
+                        <div class="product-img"></div>
+                        <div class="product-info">
+                            <div class="product-title">${transaction.title}</div>
+                            <div class="product-meta">${transaction.date}원 • 판매자: ${transaction.seller}</div>
+                        </div>
+                        ${actionContent}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+
+    </script>
+
+</body>
+
+</html>
