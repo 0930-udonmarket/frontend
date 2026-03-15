@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우동마켓 - 로그인</title>
+    <link rel="icon" href="../../public/favicon.ico">
+    <link rel="stylesheet" href="../css/Login.css">
+</head>
+<body>
+    <div class="page">
+        <main class="card">
+            <header class="header">
+                <h1 class="brand">우동마켓</h1>
+                <p class="subtitle">우리 동네 공동구매의 시작</p>
+            </header>
+
+            <nav class="tabs" aria-label="로그인/회원가입">
+                <button 
+                    type="button" 
+                    class="tab tab-active" 
+                    aria-current="page"
+                    onclick="location.href='Login.html'"
+                >
+                    로그인
+                </button>
+                <button 
+                    type="button" 
+                    class="tab"
+                    onclick="location.href='Signup.html'"
+                >
+                    회원가입
+                </button>
+            </nav>
+
+            <section class="content">
+                <!-- 에러/성공 메시지 -->
+                <div id="alertBox" class="alert" style="display:none;"></div>
+
+                <form id="loginForm">
+                    <div class="field">
+                        <label class="label" for="email">아이디 (이메일)</label>
+                        <input
+                            id="email"
+                            class="input"
+                            type="email"
+                            placeholder="example@udong.com"
+                            autocomplete="email"
+                        />
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="password">비밀번호</label>
+                        <input
+                            id="password"
+                            class="input"
+                            type="password"
+                            placeholder="비밀번호를 입력해주세요"
+                            autocomplete="current-password"
+                        />
+                    </div>
+
+                    <div class="row">
+                        <label class="keep-login">
+                            <input type="checkbox" class="checkbox" id="keepLogin"/>
+                            <span>로그인 상태 유지</span>
+                        </label>
+                        <a class="find-link" href="FindAccount.html">
+                            아이디/비밀번호 찾기
+                        </a>
+                    </div>
+
+                    <button type="submit" class="primary-btn" id="loginBtn">
+                        로그인
+                    </button>
+                </form>
+
+                <div class="divider-row" aria-hidden="true">
+                    <span class="divider-line"></span>
+                    <span class="divider-text">SNS 계정으로 로그인</span>
+                    <span class="divider-line"></span>
+                </div>
+
+                <div class="sns-row">
+                    <!-- 카카오 로그인 -->
+                    <button 
+                        type="button" 
+                        class="sns-btn kakao" 
+                        aria-label="카카오로 로그인"
+                        onclick="snsLogin('kakao')"
+                    >
+                        K
+                    </button>
+                    <!-- 네이버 로그인 -->
+                    <button 
+                        type="button" 
+                        class="sns-btn naver" 
+                        aria-label="네이버로 로그인"
+                        onclick="snsLogin('naver')"
+                    >
+                        N
+                    </button>
+                    <!-- 구글 로그인 -->
+                    <button 
+                        type="button" 
+                        class="sns-btn google" 
+                        aria-label="구글로 로그인"
+                        onclick="snsLogin('google')"
+                    >
+                        G
+                    </button>
+                </div>
+            </section>
+
+            <footer class="footer"></footer>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        /* ================================
+           일반 로그인
+        ================================ */
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email    = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!email || !password) {
+                showAlert('이메일과 비밀번호를 입력해주세요.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.textContent = '로그인 중...';
+
+            try {
+                const res = await fetch(`${API_BASE}/users/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userName: email, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // 토큰 저장
+                    const storage = document.getElementById('keepLogin').checked
+                        ? localStorage
+                        : sessionStorage;
+                    storage.setItem('accessToken',  data.accessToken);
+                    storage.setItem('refreshToken', data.refreshToken);
+                    storage.setItem('userId',       data.userId);
+
+                    showAlert('로그인 성공! 메인 페이지로 이동합니다.', 'success');
+                    setTimeout(() => {
+                        location.href = 'Main.html'; // 메인 페이지로 이동
+                    }, 1000);
+                } else {
+                    showAlert(data.message || '이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
+                }
+            } catch (err) {
+                showAlert('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '로그인';
+            }
+        });
+
+        /* ================================
+           SNS 로그인 (카카오 / 네이버 / 구글)
+           백엔드 /api/oauth/{platform} 으로 리다이렉트
+        ================================ */
+        function snsLogin(platform) {
+            location.href = `${API_BASE}/oauth/${platform}`;
+        }
+
+        /* ================================
+           알림 메시지 표시
+        ================================ */
+        function showAlert(msg, type) {
+            const box = document.getElementById('alertBox');
+            box.textContent  = msg;
+            box.className    = `alert alert-${type}`;
+            box.style.display = 'block';
+            // 5초 후 자동 숨김
+            setTimeout(() => { box.style.display = 'none'; }, 5000);
+        }
+
+        /* ================================
+           SNS 로그인 콜백 처리
+           백엔드에서 ?token=xxx&userId=xxx 로 리다이렉트해줄 경우
+        ================================ */
+        (function checkOAuthCallback() {
+            const params      = new URLSearchParams(location.search);
+            const accessToken = params.get('accessToken');
+            const userId      = params.get('userId');
+
+            if (accessToken) {
+                localStorage.setItem('accessToken', accessToken);
+                if (userId) localStorage.setItem('userId', userId);
+                showAlert('SNS 로그인 성공!', 'success');
+                // URL 파라미터 제거
+                history.replaceState(null, '', location.pathname);
+                setTimeout(() => { location.href = 'Main.html'; }, 1000);
+            }
+        })();
+    </script>
+</body>
+</html>
