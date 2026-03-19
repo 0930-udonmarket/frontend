@@ -100,8 +100,14 @@ body {
 .transaction-content {
     display: flex;
     align-items: center;
-    gap: 16px;
+    justify-content: space-between;
+    gap: 15px;
 
+}
+
+.transaction-actions {
+    display: flex;
+    align-items: center;
 }
 
 .product-img {
@@ -160,15 +166,22 @@ body {
 .transaction-card.end .btn-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
 }
 
 .status {
     font-weight: bold;
     font-size: 16px;
     color: #868E96;
-    width: 70px;
     text-align: center;
+    white-space: nowrap;
+}
+
+.btn-container {
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+
 }
 
 .review-btn, .check-btn {
