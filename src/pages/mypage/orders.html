@@ -37,8 +37,7 @@
 
             <div class="transaction-container">
                 <!-- 거래 중인 (ing) transaction card -->
-                <!-- for-each -->
-                <div class="transaction-card ing">
+                <!-- <div class="transaction-card ing">
                     <div class="transaction-content">
                         <div class="product-img"></div>
                         <div class="product-info">
@@ -48,22 +47,11 @@
                         <div class="price">45,000원</div>
                         <button class="move-btn">거래/채팅 이동</button>
                     </div>
-                </div>
-
-                <div class="transaction-card ing">
-                    <div class="transaction-content">
-                        <div class="product-img"></div>
-                        <div class="product-info">
-                            <div class="product-title">1등급 한우 모듬 세트 (공동구매)</div>
-                            <div class="product-meta">2026.01.17 • 판매자: 행복한 정육점</div>
-                        </div>
-                        <div class="price">45,000원</div>
-                        <button class="move-btn">거래/채팅 이동</button>
-                    </div>
-                </div>
+                </div> -->
 
                 <!-- 거래 완료 (end) transaction card -->
-                <div class="transaction-card end">
+                
+                <!-- <div class="transaction-card end">
                     <div class="transaction-content">
                         <div class="product-img"></div>
                         <div class="product-info">
@@ -76,22 +64,9 @@
                             <button class="check-btn">배송 조회</button>
                         </div>
                     </div>
-                </div>
+                </div> -->
 
-                <div class="transaction-card end">
-                    <div class="transaction-content">
-                        <div class="product-img"></div>
-                        <div class="product-info">
-                            <div class="product-title">1등급 한우 모듬 세트 (공동구매)</div>
-                            <div class="product-meta">2026.01.17 • 판매자: 행복한 정육점</div>
-                        </div>
-                        <div class="status">배송 완료</div>
-                        <div class="btn-container">
-                            <button class="review-btn">리뷰 쓰기</button>
-                            <button class="check-btn">배송 조회</button>
-                        </div>
-                    </div>
-                </div>
+
 
             </div>
         </div>
@@ -99,6 +74,7 @@
     </div>
 
     <script>
+
         document.querySelector(".home")?.addEventListener('click', () => {
             window.location.href = './home.html';
         });
@@ -124,9 +100,8 @@
         })
 
         window.addEventListener('DOMContentLoaded', async () => {
-            await fetchAllTransactions();
+            await fetchTransactions('ACTIVE'); // 처음 로딩됐을 때는 '거래 중' 데이터만 가져오기
             
-            filterCards('ing');
         });
 
         const btnIng = document.getElementById("btn-ing");
@@ -134,29 +109,16 @@
 
         // 거래 중 버튼 클릭 시
         btnIng.addEventListener('click', () => {
-            filterCards('ing');
+            fetchTransactions('ACTIVE');
             setActiveButton(btnIng);
         });
 
         // 거래 완료 버튼 클릭 시
         btnEnd.addEventListener('click', () => {
-            filterCards('end');
+            fetchTransactions('COMPLETED');
             setActiveButton(btnEnd);
 
         });
-
-        function filterCards(status) {
-            const allCards = document.querySelectorAll(".transaction-card");
-            
-            allCards.forEach(card => {
-                if (card.classList.contains(status)) {
-                    card.style.display = '';
-
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        };
 
         function setActiveButton(activeBtn) {
             btnIng.classList.remove('select');
@@ -164,38 +126,62 @@
             activeBtn.classList.add('select');
         };
 
-        async function fetchAllTransactions() {
+        async function fetchTransactions(status) {
             try {
-                const response = await fetch('http://'); // 실제 백엔드 주소
+                const userId = 1; // 테스트용
+
+                const response = await fetch(`http://localhost:8080/api/order?userId=${userId}&status=${status}`); // 실제 백엔드 주소
+                
+                if (!response.ok) throw new Error("서버 응답 에러");
+
                 const transactions = await response.json();
 
-                displayTransactions(transactions);
+                console.log("받은 데이터:", transactions);
+
+                displayTransactions(transactions, status);
+
 
             } catch (error) {
                 console.error("데이터 로드 실패: ", error);
             }
         };
         
-        function displayTransactions(transactions) {
+        function displayTransactions(transactions, currentStatus) {
             const container = document.querySelector(".transaction-container");
             container.innerHTML = "";
 
-            transactions.forEach(transaction => {
+            transactions.forEach(bd => { // backendData
+
+                const transaction = {
+                    status: bd.partStatus === 'ACTIVE' ? 'ing' : 'end',
+                    title: bd.postTitle,
+                    seller: bd.sellerName,
+                    date: bd.postCreatedAt.split('T')[0],
+                    price: bd.pricePerPerson,
+                    deliveryStatus: "배송 준비 중" // 테스트용
+                };
+
                 const card = document.createElement("div");
                 card.className = `transaction-card ${transaction.status}`;
 
                 let actionContent = "";
-                if (transaction.status === 'ing') { // status가 거래 중
+                if (transaction.status === 'ing') { // status가 거래 중일 때 
                     actionContent = `
-                        <div class="price">${transaction.price.toLocaleString()}</div>
-                        <button class="move-btn">거래/채팅 이동</button>
+                        <div class="transaction-actions">
+                            <div class="price">${transaction.price} 원</div>
+                            <div class="btn-container">
+                                <button class="move-btn">거래/채팅 이동</button>
+                            </div>
+                        </div>
                     `;
                 } else {
                     actionContent = `
-                        <div class="status">${transaction.deliveryStatus}</div>
-                        <div class="btn-container">
-                            <button class="review-btn">리뷰 쓰기</button>
-                            <button class="check-btn">배송 조회</button>
+                        <div class="transaction-actions">
+                            <div class="status">${transaction.deliveryStatus}</div>
+                            <div class="btn-container">
+                                <button class="review-btn">리뷰 쓰기</button>
+                                <button class="check-btn">배송 조회</button>
+                            </div>
                         </div>
                     `;
                 }
@@ -205,7 +191,7 @@
                         <div class="product-img"></div>
                         <div class="product-info">
                             <div class="product-title">${transaction.title}</div>
-                            <div class="product-meta">${transaction.date}원 • 판매자: ${transaction.seller}</div>
+                            <div class="product-meta">${transaction.date} • 판매자: ${transaction.seller}</div>
                         </div>
                         ${actionContent}
                     </div>
