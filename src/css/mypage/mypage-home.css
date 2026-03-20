@@ -157,6 +157,12 @@ body {
     gap: 15px;
 }
 
+.transaction-container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 15px;
+}
+
 .transaction-card {
     border: 2px solid #FF6F0F;
     background-color: #FFFFFF;
