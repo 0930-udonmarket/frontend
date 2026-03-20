@@ -112,13 +112,15 @@
         window.addEventListener('DOMContentLoaded', () => {
             fetchUserInfo();
             fetchLikeCount();
-            // fetchCurrentTransactions();
+            fetchCurrentTransactions('ACTIVE');
         });
+
+        const userId = localStorage.getItem('userId') || 1;
 
         async function fetchUserInfo() {
 
             const urlParams = new URLSearchParams(window.location.search);
-            const userId = localStorage.getItem('userId') || 1;
+
 
             if (!userId) {
                 alert("잘못된 접근입니다.");
@@ -126,8 +128,8 @@
             }
 
             try {
-                const userResponse = await fetch(`http://localhost:8080/api/mypage/${userId}`); // 실제 백엔드 주소
-                
+                const userResponse = await fetch(`http://localhost:8080/api/users/mypage/${userId}`); // 실제 백엔드 주소
+
                 if (!userResponse.ok) throw new Error("데이터 없음");
 
                 const userData = await userResponse.json();
@@ -141,7 +143,6 @@
         };
 
         async function fetchLikeCount() {
-            const userId = localStorage.getItem('userId') || 1;
 
             try {
                 const likeResponse = await fetch(`http://localhost:8080/api/likes/${userId}`);
@@ -156,28 +157,43 @@
                     document.getElementById("like-count").textContent = likeCount;
                 }
 
-            } catch(error) {
+            } catch (error) {
                 console.error("찜 목록 개수 가져오기 실패: ", error);
             }
-            
+
         }
 
-        async function fetchCurrentTransactions() {
+        async function fetchCurrentTransactions(status) {
             try {
-                const response = await fetch('http://'); // 실제 백엔드 주소
+
+                const response = await fetch(`http://localhost:8080/api/order?userId=${userId}&status=${status}`); // 실제 백엔드 주소
                 const transactionDatas = await response.json();
 
-                displayCurrentTransactions(transactionDatas);
+                displayCurrentTransactions(transactionDatas, status);
             } catch (error) {
                 console.error("데이터 로드 실패: ", error);
             }
         }
 
-        function displayCurrentTransactions(transactionDatas) {
+        function displayCurrentTransactions(transactionDatas, status) {
             const container = document.querySelector(".transaction-container");
             container.innerHTML = "";
 
-            transactionDatas.forEach(transactionData => {
+            if (transactionDatas.length === 0) {
+                container.innerHTML = "<p class='empty-msg'>현재 진행 중인 거래가 없습니다. 😊</p>";
+                return;
+            }
+
+            transactionDatas.forEach(bd => {
+
+                const transactionData = {
+                    status: bd.partStatus,
+                    title: bd.postTitle,
+                    seller: bd.sellerName,
+                    date: bd.postCreatedAt.split('T')[0],
+                    price: bd.pricePerPerson
+                };
+
                 const card = document.createElement("div");
                 card.className = `transaction-card`;
 
@@ -186,13 +202,13 @@
                         <div class="product-img"></div>
                         <div class="product-info">
                             <div class="product-title">${transactionData.title}</div>
-                            <div class="product-meta">${transactionData.date}원 • 판매자: ${transactionData.seller}</div>
+                            <div class="product-meta">${transactionData.date} • 판매자: ${transactionData.seller}</div>
                         </div>
-                        <div class="price">${transactionData.price.toLocaleString()}</div>
+                        <div class="price">${transactionData.price} 원</div>
                         <button class="move-btn">거래/채팅 이동</button>
                     </div>
                 `
-                
+
                 container.appendChild(card);
             });
         }
