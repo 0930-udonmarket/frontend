@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mypage-likes</title>
+
+    <link href="../../css/mypage/mypage-likes.css" rel="stylesheet">
+    <link rel="icon" href="../../../public/favicon.ico">
+</head>
+
+<body>
+    <div class="header">
+        <h1>header</h1>
+    </div>
+
+    <div class="main">
+        <div class="menu">
+            <div class="menu-title">마이페이지</div>
+            <div class="items">
+                <div class="home">홈</div>
+                <div class="orders">거래 내역</div>
+                <div class="likes active">관심 상품 (찜)</div>
+                <div class="reviews">내가 작성한 리뷰</div>
+                <div class="edit">내 정보 수정</div>
+                <div class="cs">고객센터</div>
+            </div>
+        </div>
+
+        <class class="content">
+            <div class="transaction-container">
+
+            </div>
+        </class>
+
+        <script>
+            document.querySelector(".home")?.addEventListener('click', () => {
+                window.location.href = './home.html';
+            })
+
+            document.querySelector(".orders")?.addEventListener('click', () => {
+                window.location.href = './orders.html';
+            })
+
+            document.querySelector(".likes")?.addEventListener('click', () => {
+                window.location.href = './likes.html';
+            })
+
+            document.querySelector(".reviews")?.addEventListener('click', () => {
+                window.location.href = './reviews/list.html';
+            })
+
+            document.querySelector(".edit")?.addEventListener('click', () => {
+                window.location.href = './edit.html';
+            })
+
+            window.addEventListener('DOMContentLoaded', async () => {
+                await fetchAllLikes();
+            })
+
+            async function fetchAllLikes() {
+                try {
+
+                    const userId = 1; // localStorage.getItem('userId');
+
+                    const response = await fetch(`http://localhost:8080/api/likes/${userId}`);
+                    if (!response.ok) throw new Error("서버 응답 에러");
+
+                    const likes = await response.json();
+
+                    console.log("받은 데이터: ", likes);
+
+                    display(likes);
+                } catch (error) {
+                    console.error("데이터 로드 실패: ", error);
+                }
+            }
+
+            async function display(likes) {
+                const container = document.querySelector(".transaction-container");
+                container.innerHTML = "";
+
+                likes.forEach(like => {
+                    const card = document.createElement("div");
+
+                    const post = like.post || {};
+                    const title = post.title || "제목 없음";
+                    const productId = post.id || "ID 없음"
+
+                    // 상태에 따라 클래스를 추가 (CSS에서 ing, end 디자인이 적용되도록)
+                    const isEnd = (post.status === "DONE" || post.status === "CANCEL");
+                    card.className = `transaction-card ${isEnd ? 'end' : 'ing'}`;
+
+                    const dateFormatting = post.createdAt ? post.createdAt.split('T')[0] : null;
+
+                    if (!isEnd) {
+                        card.innerHTML = `
+                        <div class="transaction-content">
+                            <div class="product-img"></div>
+                            <div class="product-info">
+                                <div class="product-title">${title}</div>
+                                <div class="product-meta">${dateFormatting || "2026.00.00"} • 판매자 ID: ${productId}</div>
+                            </div>
+                            <div class="price">45,000원</div>
+                            <div class="icon-container">
+                                <div class="likes-icon">
+                                    <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path
+                                            d="m12.75 20.66 6.184-7.098c2.677-2.884 2.559-6.506.754-8.705-.898-1.095-2.206-1.816-3.72-1.855-1.293-.034-2.652.43-3.963 1.442-1.315-1.012-2.678-1.476-3.973-1.442-1.515.04-2.825.76-3.724 1.855-1.806 2.201-1.915 5.823.772 8.706l6.183 7.097c.19.216.46.34.743.34a.985.985 0 0 0 .743-.34Z" />
+                                    </svg>
+
+                                </div>
+                                <div class="move-icon">
+                                    <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                        viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2" d="m9 5 7 7-7 7" />
+                                    </svg>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    `;
+                    } else {
+                        card.innerHTML = `
+                        <div class="transaction-content">
+                            <div class="product-img"></div>
+                            <div class="product-info">
+                                <div class="product-title">${title}</div>
+                                <div class="product-meta">${dateFormatting || "2026.00.00"} • 판매자 ID: ${productId}</div>
+                            </div>
+                            <div class="icon-container">
+                                <div class="likes-icon">
+                                    <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path
+                                            d="m12.75 20.66 6.184-7.098c2.677-2.884 2.559-6.506.754-8.705-.898-1.095-2.206-1.816-3.72-1.855-1.293-.034-2.652.43-3.963 1.442-1.315-1.012-2.678-1.476-3.973-1.442-1.515.04-2.825.76-3.724 1.855-1.806 2.201-1.915 5.823.772 8.706l6.183 7.097c.19.216.46.34.743.34a.985.985 0 0 0 .743-.34Z" />
+                                    </svg>
+
+                                </div>
+                                <div class="status">
+                                    거래 종료
+                                </div>
+                            </div>
+
+                        </div>
+                    `
+                    }
+
+                    const likesIcon = card.querySelector(".likes-icon");
+                    likesIcon.addEventListener('click', async () => {
+                        if (confirm("찜을 취소하시겠습니까?")) {
+                            await deleteLike(like.id, card);
+                        }
+                    })
+
+                    container.appendChild(card);
+                });
+            }
+
+            async function deleteLike(likeId, cardElement) {
+                try {
+                    const response = await fetch(`http://localhost:8080/api/likes/${likeId}`, {
+                        method: 'DELETE' // DELETE 방식
+                    });
+
+                    if (response.ok) {
+                        alert("찜이 취소되었습니다.");
+                        cardElement.remove(); // 화면ㄴ에서 해당 카드 바로 삭제
+                    } else {
+                        alert("삭제 실패: " + response.status);
+                    }
+                } catch (error) {
+                    console.error("삭제 중 오류 발생:", error);
+                }
+            }
+
+        </script>
+
+</body>
+
+</html>
