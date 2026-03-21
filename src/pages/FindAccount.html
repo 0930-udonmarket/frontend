@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우동마켓 - 아이디/비밀번호 찾기</title>
+    <link rel="icon" href="../../public/favicon.ico">
+    <link rel="stylesheet" href="../css/FindAccount.css">
+</head>
+<body>
+    <div class="page">
+        <main class="card">
+            <header class="header">
+                <h1 class="brand">우동마켓</h1>
+                <p class="subtitle">아이디 / 비밀번호 찾기</p>
+            </header>
+
+            <!-- 탭 -->
+            <nav class="tabs">
+                <button type="button" class="tab tab-active" id="tabId" onclick="switchTab('id')">
+                    아이디 찾기
+                </button>
+                <button type="button" class="tab" id="tabPw" onclick="switchTab('pw')">
+                    비밀번호 찾기
+                </button>
+            </nav>
+
+            <section class="content">
+                <!-- 알림 메시지 -->
+                <div id="alertBox" class="alert" style="display:none;"></div>
+
+                <!-- ========================
+                     아이디 찾기 폼
+                ======================== -->
+                <div id="formId">
+                    <p class="desc">가입 시 등록한 이름과 휴대폰 번호로 아이디를 찾을 수 있어요.</p>
+
+                    <div class="field">
+                        <label class="label" for="idName">이름</label>
+                        <input id="idName" class="input" type="text" placeholder="이름을 입력해주세요" />
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="idPhone">휴대폰 번호</label>
+                        <input id="idPhone" class="input" type="text" placeholder="01012345678" maxlength="11" inputmode="numeric" />
+                    </div>
+
+                    <button type="button" class="primary-btn" onclick="findId()">아이디 찾기</button>
+                </div>
+
+                <!-- ========================
+                     비밀번호 찾기 폼
+                ======================== -->
+                <div id="formPw" style="display:none;">
+                    <p class="desc">가입 시 등록한 이름과 휴대폰 번호로 본인 확인 후 비밀번호를 재설정할 수 있어요.</p>
+
+                    <!-- 1단계: 이름 + 휴대폰 + SMS 인증 -->
+                    <div id="pwStep1">
+                        <div class="field">
+                            <label class="label" for="pwName">이름</label>
+                            <input id="pwName" class="input" type="text" placeholder="이름을 입력해주세요" />
+                        </div>
+
+                        <div class="field">
+                            <label class="label" for="pwPhone">휴대폰 번호</label>
+                            <div class="input-row">
+                                <input id="pwPhone" class="input" type="text" placeholder="01012345678" maxlength="11" inputmode="numeric" />
+                                <button type="button" class="gray-btn" onclick="sendSmsForPw()">인증번호 발송</button>
+                            </div>
+                        </div>
+
+                        <div class="field" id="pwCodeField" style="display:none;">
+                            <label class="label" for="pwCode">인증번호</label>
+                            <div class="input-row">
+                                <input id="pwCode" class="input" type="text" placeholder="인증번호 6자리 입력" maxlength="6" inputmode="numeric" />
+                                <button type="button" class="gray-btn" onclick="verifySmsForPw()">확인</button>
+                            </div>
+                        </div>
+
+                        <button type="button" class="primary-btn" id="pwVerifyBtn" onclick="findPw()" style="display:none;">본인 확인</button>
+                    </div>
+
+                    <!-- 2단계: 새 비밀번호 입력 (본인 확인 완료 후 표시) -->
+                    <div id="pwStep2" style="display:none;">
+                        <div class="field">
+                            <label class="label" for="newPw">새 비밀번호</label>
+                            <input id="newPw" class="input" type="password" placeholder="새 비밀번호를 입력해주세요 (8자 이상)" />
+                        </div>
+                        <div class="field">
+                            <label class="label" for="newPw2">새 비밀번호 확인</label>
+                            <input id="newPw2" class="input" type="password" placeholder="새 비밀번호를 다시 입력해주세요" />
+                        </div>
+                        <button type="button" class="primary-btn" onclick="resetPassword()">비밀번호 재설정</button>
+                    </div>
+                </div>
+
+                <!-- 로그인으로 돌아가기 -->
+                <div class="back-row">
+                    <a class="back-link" href="Login.html">← 로그인으로 돌아가기</a>
+                </div>
+            </section>
+
+            <footer class="footer"></footer>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        let pwSmsVerified = false;
+        let verifiedPhone = '';  // 인증 완료된 휴대폰 번호 저장
+
+        /* ========================
+           탭 전환
+        ======================== */
+        function switchTab(type) {
+            document.getElementById('formId').style.display = type === 'id' ? 'block' : 'none';
+            document.getElementById('formPw').style.display = type === 'pw' ? 'block' : 'none';
+            document.getElementById('tabId').className = type === 'id' ? 'tab tab-active' : 'tab';
+            document.getElementById('tabPw').className = type === 'pw' ? 'tab tab-active' : 'tab';
+            document.getElementById('alertBox').style.display = 'none';
+        }
+
+        /* ========================
+           아이디 찾기
+           이름 + 휴대폰 → 바로 결과
+        ======================== */
+        async function findId() {
+            const name  = document.getElementById('idName').value.trim();
+            const phone = document.getElementById('idPhone').value.trim();
+            if (!name || !phone) return showAlert('이름과 휴대폰 번호를 입력해주세요.', 'error');
+
+            try {
+                const res = await fetch(`${API_BASE}/users/find-id`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`가입된 아이디(이메일)\n\n${data.userName}`);
+                } else {
+                    showAlert(data.message || '일치하는 회원 정보가 없습니다.', 'error');
+                }
+            } catch {
+                showAlert('서버 연결에 실패했습니다.', 'error');
+            }
+        }
+
+        /* ========================
+           비밀번호 찾기 - SMS 발송
+        ======================== */
+        async function sendSmsForPw() {
+            const phone = document.getElementById('pwPhone').value.trim();
+            if (!phone) return showAlert('휴대폰 번호를 입력해주세요.', 'error');
+
+            try {
+                const res = await fetch(`${API_BASE}/users/sms/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+                if (res.ok) {
+                    document.getElementById('pwCodeField').style.display = 'block';
+                    showAlert('인증번호가 발송되었습니다.', 'success');
+                } else {
+                    showAlert('인증번호 발송에 실패했습니다.', 'error');
+                }
+            } catch {
+                showAlert('서버 연결에 실패했습니다.', 'error');
+            }
+        }
+
+        /* ========================
+           비밀번호 찾기 - SMS 확인
+        ======================== */
+        async function verifySmsForPw() {
+            const phone = document.getElementById('pwPhone').value.trim();
+            const code  = document.getElementById('pwCode').value.trim();
+            if (!code) return showAlert('인증번호를 입력해주세요.', 'error');
+
+            try {
+                const res = await fetch(`${API_BASE}/users/sms/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, code })
+                });
+                const data = await res.json();
+                if (data.verified) {
+                    pwSmsVerified = true;
+                    verifiedPhone = phone;
+                    document.getElementById('pwVerifyBtn').style.display = 'block';
+                    showAlert('인증이 완료되었습니다.', 'success');
+                } else {
+                    showAlert(data.message || '인증번호가 올바르지 않습니다.', 'error');
+                }
+            } catch {
+                showAlert('서버 연결에 실패했습니다.', 'error');
+            }
+        }
+
+        /* ========================
+           비밀번호 찾기 - 본인 확인
+           이름 + 휴대폰 일치 여부 확인
+        ======================== */
+        async function findPw() {
+            const name  = document.getElementById('pwName').value.trim();
+            const phone = document.getElementById('pwPhone').value.trim();
+            if (!name || !phone) return showAlert('이름과 휴대폰 번호를 입력해주세요.', 'error');
+            if (!pwSmsVerified)  return showAlert('휴대폰 인증을 완료해주세요.', 'error');
+
+            try {
+                const res = await fetch(`${API_BASE}/users/find-pw/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('pwStep1').style.display = 'none';
+                    document.getElementById('pwStep2').style.display = 'block';
+                    showAlert('본인 확인 완료! 새 비밀번호를 입력해주세요.', 'success');
+                } else {
+                    showAlert(data.message || '일치하는 회원 정보가 없습니다.', 'error');
+                }
+            } catch {
+                showAlert('서버 연결에 실패했습니다.', 'error');
+            }
+        }
+
+        /* ========================
+           비밀번호 재설정
+        ======================== */
+        async function resetPassword() {
+            const name   = document.getElementById('pwName').value.trim();
+            const phone  = verifiedPhone;
+            const newPw  = document.getElementById('newPw').value.trim();
+            const newPw2 = document.getElementById('newPw2').value.trim();
+
+            if (!newPw || !newPw2) return showAlert('새 비밀번호를 입력해주세요.', 'error');
+            if (newPw !== newPw2)  return showAlert('비밀번호가 일치하지 않습니다.', 'error');
+            if (newPw.length < 8)  return showAlert('비밀번호는 8자 이상 입력해주세요.', 'error');
+
+            try {
+                const res = await fetch(`${API_BASE}/users/find-pw/reset`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone, newPassword: newPw })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showAlert('비밀번호가 재설정되었습니다. 로그인 페이지로 이동합니다.', 'success');
+                    setTimeout(() => { location.href = 'Login.html'; }, 2000);
+                } else {
+                    showAlert(data.message || '비밀번호 재설정에 실패했습니다.', 'error');
+                }
+            } catch {
+                showAlert('서버 연결에 실패했습니다.', 'error');
+            }
+        }
+
+        /* ========================
+           알림 메시지
+        ======================== */
+        function showAlert(msg, type) {
+            const box = document.getElementById('alertBox');
+            box.textContent   = msg;
+            box.className     = `alert alert-${type}`;
+            box.style.display = 'block';
+            setTimeout(() => { box.style.display = 'none'; }, 5000);
+        }
+    </script>
+</body>
+</html>
