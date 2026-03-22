@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우동마켓 - 가입 완료</title>
+    <link rel="icon" href="../../public/favicon.ico">
+    <link rel="stylesheet" href="../css/SignupComplete.css">
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script
+      type="text/javascript"
+      src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=01414d5bef98a8eb5d42a723a752b9b6&libraries=services"
+    ></script>
+    <script>
+        window.__skipHeader = true;
+    </script>
+    <script src="js/common.js"></script>
+</head>
+<body>
+    <!-- 미니 헤더 (로고만) -->
+    <header class="mini-header">
+        <a href="main/main.html" class="mini-header-logo-link">
+            <img src="../assets/logo.png" alt="우동마켓" class="mini-header-logo" />
+            <div class="mini-header-logo-text">
+                <img src="../assets/logo-text.png" alt="우동마켓" />
+            </div>
+        </a>
+    </header>
+    <div class="page">
+        <div class="card">
+            <!-- 성공 아이콘 섹션 -->
+            <div class="success-icon-wrap">
+                <div class="success-icon-bg"></div>
+
+                <div class="success-icon-center">
+                    <svg
+                        class="check-icon"
+                        width="48"
+                        height="48"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                </div>
+
+                <span class="spark spark1"></span>
+                <span class="spark spark2"></span>
+                <span class="spark spark3"></span>
+                <span class="spark spark4"></span>
+            </div>
+
+            <!-- 환영 메시지 -->
+            <h1 class="title">가입이 완료되었습니다!</h1>
+            <p class="desc">우동마켓의 가족이 되신 것을 환영합니다.</p>
+            <p class="desc">이제 이웃들과 따뜻한 거래를 시작해보세요.</p>
+
+            <!-- 동네 인증 안내 박스 -->
+            <div class="notice-box">
+                <div class="pin-wrap">
+                    <svg
+                        class="pin-icon"
+                        width="40"
+                        height="48"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" fill="white" />
+                    </svg>
+                    <span class="pin-hole"></span>
+                </div>
+
+                <h2 class="notice-title">잠깐! 동네 인증이 필요해요</h2>
+                <p class="notice-text">원활한 공동구매와 직거래를 위해</p>
+                <p class="notice-text">현재 위치한 동네를 인증해주세요.</p>
+            </div>
+
+            <!-- 버튼 그룹 -->
+            <div class="button-group">
+                <button
+                    type="button"
+                    class="primary-btn"
+                    onclick="handleVerifyLocation()"
+                >
+                    지금 동네 인증하기
+                </button>
+
+                <button
+                    type="button"
+                    class="secondary-btn"
+                    onclick="handleSkip()"
+                >
+                    나중에 하기 (홈으로 이동)
+                </button>
+            </div>
+
+            <p class="hint">💡 동네 인증은 마이페이지에서도 언제든 가능합니다.</p>
+        </div>
+    </div>
+
+    <script>
+        /* ================================================
+           SNS 로그인(카카오/네이버/구글) 완료 후
+           URL 파라미터로 넘어온 토큰을 localStorage에 저장
+        ================================================ */
+        (function saveTokenFromUrl() {
+            const params        = new URLSearchParams(location.search);
+            const accessToken   = params.get('accessToken');
+            const refreshToken  = params.get('refreshToken');
+            const userId        = params.get('userId');
+
+            if (accessToken) {
+                localStorage.setItem('accessToken',  accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
+                localStorage.setItem('userId',       userId);
+                console.log('[SignupComplete] 토큰 저장 완료 - userId:', userId);
+            }
+
+            // URL 파라미터 제거 (주소창 정리)
+            history.replaceState(null, '', location.pathname);
+        })();
+
+        /* ================================================
+           동네 인증하기 버튼
+        ================================================ */
+        function handleVerifyLocation() {
+            // initCommon이 완료될 때까지 잠깐 기다림
+            if (typeof window.startGpsAuth === 'function') {
+                window.startGpsAuth(-1);
+            } else {
+                // 아직 로드 안 됐으면 100ms 후 재시도
+                setTimeout(() => {
+                    if (typeof window.startGpsAuth === 'function') {
+                        window.startGpsAuth(-1);
+                    } else {
+                        alert('잠시 후 다시 시도해주세요.');
+                    }
+                }, 100);
+            }
+        }
+
+        /* ================================================
+           나중에 하기 버튼 → 홈으로 이동
+        ================================================ */
+        function handleSkip() {
+            location.href = 'main/main.html';
+        }
+    </script>
+</body>
+</html>
