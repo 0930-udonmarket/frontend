@@ -33,7 +33,7 @@
                 <div class="user-img"></div>
                 <div class="user-info">
                     <div class="name"></div>
-                    <div class="address">서울시 강남구 역삼동</div>
+                    <div class="address"></div>
                 </div>
                 <button class="edit-btn">정보 수정</button>
             </div>
@@ -65,17 +65,7 @@
             <div class="container2">
                 <h2>현재 진행 거래</h2>
                 <div class="transaction-container">
-                    <div class="transaction-card">
-                        <div class="transaction-content">
-                            <div class="product-img"></div>
-                            <div class="product-info">
-                                <div class="product-title">1등급 한우 모듬 세트 (공동구매)</div>
-                                <div class="product-meta">2026.01.17 • 판매자: 행복한 정육점</div>
-                            </div>
-                            <div class="price">45,000원</div>
-                            <button class="move-btn">거래/채팅 이동</button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -111,6 +101,7 @@
         // 페이지가 로드되면 실행
         window.addEventListener('DOMContentLoaded', () => {
             fetchUserInfo();
+            fetchAddressInfo();
             fetchLikeCount();
             fetchCurrentTransactions('ACTIVE');
         });
@@ -135,11 +126,37 @@
                 const userData = await userResponse.json();
 
                 document.querySelector(".name").textContent = `${userData.name} 님`;
-                document.querySelector(".address").textContent = userData.address;
+
 
             } catch (error) {
-                console.error("데이터 로드 실패: ", error);
+                console.error("유저 데이터 로드 실패: ", error);
             }
+        };
+
+        async function fetchAddressInfo() {
+
+            try {
+                const userId = 10;
+                const addressResponse = await fetch(`http://localhost:8080/api/v1/users/locations/${userId}`);
+
+                if (!addressResponse.ok) throw new Error("데이터 없음");
+
+                const addressData = await addressResponse.json();
+                console.log("받은 데이터:", addressData);
+
+                // 데이터가 있는지 먼저 확인
+                if (addressData.length > 0) {
+                    
+                    const firstLocation = addressData[0];
+                    console.log(addressData[0]);
+                    const fullAddress = `${firstLocation.sido} ${firstLocation.sigungu} ${firstLocation.legalDong}`;
+
+                    document.querySelector(".address").textContent = fullAddress;
+                }
+            } catch (error) {
+                console.error("주소 데이터 로드 실패: ", error);
+            }
+
         };
 
         async function fetchLikeCount() {

@@ -64,7 +64,7 @@
 
 
                 </div>
-                <div class="detail">서울시 강남구 역삼동</div>
+                <div class="detail address"></div>
                 <button class="edit-btn">수정</button>
             </div>
 
@@ -132,6 +132,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             fetchUserInfo();
+            fetchAddressInfo();
 
         });
 
@@ -169,7 +170,7 @@
             }
 
             try {
-                const userResponse = await fetch(`http://localhost:8080/api/mypage/${userId}`);
+                const userResponse = await fetch(`http://localhost:8080/api/users/mypage/${userId}`);
                 
                 if (!userResponse.ok) throw new Error("데이터 없음");
 
@@ -182,6 +183,32 @@
                 console.error("데이터 로드 실패: ", error);
             }
         }
+
+                async function fetchAddressInfo() {
+
+            try {
+                const userId = 10;
+                const addressResponse = await fetch(`http://localhost:8080/api/v1/users/locations/${userId}`);
+
+                if (!addressResponse.ok) throw new Error("데이터 없음");
+
+                const addressData = await addressResponse.json();
+                console.log("받은 데이터:", addressData);
+
+                // 데이터가 있는지 먼저 확인
+                if (addressData.length > 0) {
+                    
+                    const firstLocation = addressData[0];
+                    console.log(addressData[0]);
+                    const fullAddress = `${firstLocation.sido} ${firstLocation.sigungu} ${firstLocation.legalDong}`;
+
+                    document.querySelector(".address").textContent = fullAddress;
+                }
+            } catch (error) {
+                console.error("주소 데이터 로드 실패: ", error);
+            }
+
+        };
 
     </script>
 
