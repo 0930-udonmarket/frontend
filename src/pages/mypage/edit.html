@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mypage-edit</title>
+
+    <link href="../../css/mypage/mypage-edit.css" rel="stylesheet">
+    <link rel="icon" href="../../../public/favicon.ico">
+</head>
+
+<body>
+    <div class="header">
+        <h1>header</h1>
+    </div>
+
+    <div class="main">
+        <div class="menu">
+            <div class="menu-title">마이페이지</div>
+            <div class="items">
+                <div class="home">홈</div>
+                <div class="orders">거래 내역</div>
+                <div class="likes">관심 상품 (찜)</div>
+                <div class="reviews">내가 작성한 리뷰</div>
+                <div class="edit active">내 정보 수정</div>
+                <div class="cs">고객센터</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="container profile">
+                <div class="user-img-container">
+                    <div class="user-img"></div>
+                    <div class="user-img-update">
+
+                        <div class="user-img-update-icon">
+                            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10.779 17.779 4.36 19.918 6.5 13.5m4.279 4.279 8.364-8.643a3.027 3.027 0 0 0-2.14-5.165 3.03 3.03 0 0 0-2.14.886L6.5 13.5m4.279 4.279L6.499 13.5m2.14 2.14 6.213-6.504M12.75 7.04 17 11.28" />
+                            </svg>
+        
+                        </div>
+                </div>
+
+                </div>
+                <div class="user-info">
+                    <div class="name"></div>
+                    <input class="input-name"></input>
+                </div>
+                <button class="edit-btn" id="edit-name" onclick="editInfo()">수정</button>
+            </div>
+
+            <div class="container sub-container">
+                <div class="icon">
+                    <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17.8 13.938h-.011a7 7 0 1 0-11.464.144h-.016l.14.171c.1.127.2.251.3.371L12 21l5.13-6.248c.194-.209.374-.429.54-.659l.13-.155Z" />
+                    </svg>
+
+
+                </div>
+                <div class="detail address"></div>
+                <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="container sub-container">
+                <div class="icon">
+                    <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 14v3m-3-6V7a3 3 0 1 1 6 0v4m-8 0h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z" />
+                    </svg>
+
+                </div>
+                <div class="pwd-info">
+                    <div class="detail">비밀번호</div>
+                    <input class="input-pwd"></input>
+                </div>
+                <button class="edit-btn" id="edit-pwd" onclick="editInfo()">수정</button>
+            </div>
+
+            <div class="other">
+                <p class="logout">로그아웃</p>
+                <p class="delete">회원탈퇴</p>
+            </div>
+
+
+        </div>
+
+    </div>
+
+    <script>
+
+        document.querySelector(".home")?.addEventListener('click', () => {
+            window.location.href = './home.html';
+        })
+
+        document.querySelector(".orders")?.addEventListener('click', () => {
+            window.location.href = './orders.html';
+        })
+
+        document.querySelector(".likes")?.addEventListener('click', () => {
+            window.location.href = './likes.html';
+        })
+
+        document.querySelector(".reviews")?.addEventListener('click', () => {
+            window.location.href = './reviews/list.html';
+        })
+
+        document.querySelector(".edit")?.addEventListener('click', () => {
+            window.location.href = './edit.html';
+        })
+
+        document.querySelector(".logout")?.addEventListener('click', () => {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                alert('로그아웃 되었습니다.');
+                window.location.href = '/login.html'; // 로그인 페이지로 이동 
+            }
+        });
+
+        document.querySelector(".delete")?.addEventListener('click', () => {
+            if (confirm('정말로 탈퇴하시겠습니까?')) {
+                alert('탈퇴가 완료되었습니다.');
+                window.location.href = '/home.html'; // 메인 페이지로 이동 
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchUserInfo();
+            fetchAddressInfo();
+
+        });
+
+        function editInfo() {
+            const clickBtnId = event.currentTarget.id;
+
+            if (clickBtnId === "edit-name") {
+                const inputName = document.querySelector(".input-name");
+                const currentDisplay = window.getComputedStyle(inputName).display; // 브라우저가 실제로 렌더링하고 있는 display 값을 가져옴
+
+                if (currentDisplay === "none") {
+                    inputName.style.display = "block";
+                } else {
+                    inputName.style.display = "none";
+                }
+            } else if (clickBtnId === "edit-pwd") {
+                const inputPwd = document.querySelector(".input-pwd");
+                const currentDisplay = window.getComputedStyle(inputPwd).display; // 브라우저가 실제로 렌더링하고 있는 display 값을 가져옴
+
+                if (currentDisplay === "none") {
+                    inputPwd.style.display = "block";
+                } else {
+                    inputPwd.style.display = "none";
+                }
+            }
+        }
+
+        async function fetchUserInfo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = localStorage.getItem('userId') || 1;
+
+            if (!userId) {
+                alert("잘못된 접근입니다.");
+                return;
+            }
+
+            try {
+                const userResponse = await fetch(`http://localhost:8080/api/users/mypage/${userId}`);
+                
+                if (!userResponse.ok) throw new Error("데이터 없음");
+
+                const userData = await userResponse.json();
+
+                document.querySelector(".name").textContent = `${userData.name} 님`;
+                // document.querySelector(".detail").textContent = userData.address;
+
+            } catch (error) {
+                console.error("데이터 로드 실패: ", error);
+            }
+        }
+
+                async function fetchAddressInfo() {
+
+            try {
+                const userId = 10;
+                const addressResponse = await fetch(`http://localhost:8080/api/v1/users/locations/${userId}`);
+
+                if (!addressResponse.ok) throw new Error("데이터 없음");
+
+                const addressData = await addressResponse.json();
+                console.log("받은 데이터:", addressData);
+
+                // 데이터가 있는지 먼저 확인
+                if (addressData.length > 0) {
+                    
+                    const firstLocation = addressData[0];
+                    console.log(addressData[0]);
+                    const fullAddress = `${firstLocation.sido} ${firstLocation.sigungu} ${firstLocation.legalDong}`;
+
+                    document.querySelector(".address").textContent = fullAddress;
+                }
+            } catch (error) {
+                console.error("주소 데이터 로드 실패: ", error);
+            }
+
+        };
+
+    </script>
+
+</body>
+
+</html>
