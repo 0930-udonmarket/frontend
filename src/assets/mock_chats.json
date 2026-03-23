@@ -1,0 +1,11 @@
+{
+  "seller": [
+    { "id": 1, "title": "시흥동 학원", "desc": "피자 10판 주문 건 배달 시간 조정 가능할까요?", "date": "방금 전", "unread": true },
+    { "id": 2, "title": "김철수 (구매자)", "desc": "혹시 소량 구매도 가능한가요?", "date": "3시간 전", "unread": false }
+  ],
+  "buyer_verified": [
+    { "id": 1, "title": "시흥동쿨거래", "desc": "안녕하세요! 공구 참여 가능한가요?", "date": "방금 전", "unread": true },
+    { "id": 2, "title": "동네주민1", "desc": "네 알겠습니다. 시간 맞춰 갈게요!", "date": "1시간 전", "unread": false }
+  ],
+  "buyer_unverified": []
+}
