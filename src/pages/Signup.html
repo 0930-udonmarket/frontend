@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우동마켓 - 회원가입</title>
+    <link rel="icon" href="../../public/favicon.ico">
+    <link rel="stylesheet" href="../css/Signup.css">
+</head>
+<body>
+    <div class="page">
+        <main class="card">
+            <header class="header">
+                <h1 class="brand">우동마켓</h1>
+                <p class="subtitle">우리 동네 이웃과 함께해요</p>
+            </header>
+
+            <nav class="tabs" aria-label="로그인/회원가입">
+                <button
+                    type="button"
+                    class="tab"
+                    onclick="location.href='Login.html'"
+                >
+                    로그인
+                </button>
+                <button
+                    type="button"
+                    class="tab tab-active"
+                    aria-current="page"
+                >
+                    회원가입
+                </button>
+            </nav>
+
+            <section class="content">
+                <form id="signupForm">
+
+                    <!-- 1. 계정 정보 -->
+                    <h2 class="section-title">1. 계정 정보</h2>
+
+                    <!-- 이메일 -->
+                    <div class="field">
+                        <label class="label" for="email">아이디 (이메일)</label>
+                        <div class="input-row">
+                            <input
+                                id="email"
+                                class="input"
+                                type="email"
+                                placeholder="example@udong.com"
+                                autocomplete="email"
+                                oninput="validateEmail()"
+                            />
+                            <div class="right-slot">
+                                <button type="button" class="gray-btn" onclick="checkEmailDuplicate()">
+                                    중복 확인
+                                </button>
+                            </div>
+                        </div>
+                        <p id="emailMsg" class="hint"></p>
+                    </div>
+
+                    <!-- 비밀번호 -->
+                    <div class="field">
+                        <label class="label" for="password">비밀번호</label>
+                        <div class="pw-wrapper">
+                            <input
+                                id="password"
+                                class="input"
+                                type="password"
+                                placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                                autocomplete="new-password"
+                                oninput="checkPasswordStrength()"
+                            />
+                            <button type="button" class="pw-toggle" onclick="togglePassword('password', this)" tabindex="-1">👁</button>
+                        </div>
+                        <!-- 비밀번호 조건 체크 -->
+                        <div id="pwConditions" style="display:none; margin-top:10px;">
+                            <p id="cond-length"  class="cond">✖ 8자 이상</p>
+                            <p id="cond-english" class="cond">✖ 영문 포함</p>
+                            <p id="cond-number"  class="cond">✖ 숫자 포함</p>
+                            <p id="cond-special" class="cond">✖ 특수문자 포함</p>
+                            <p id="cond-email"   class="cond">✖ 아이디(이메일)와 다른 비밀번호</p>
+                        </div>
+                    </div>
+
+                    <!-- 비밀번호 확인 -->
+                    <div class="field">
+                        <label class="label" for="password2">비밀번호 확인</label>
+                        <div class="pw-wrapper">
+                            <input
+                                id="password2"
+                                class="input"
+                                type="password"
+                                placeholder="비밀번호를 다시 입력해주세요"
+                                autocomplete="new-password"
+                                oninput="checkPasswordMatch()"
+                            />
+                            <button type="button" class="pw-toggle" onclick="togglePassword('password2', this)" tabindex="-1">👁</button>
+                        </div>
+                        <p id="pwMsg" class="hint"></p>
+                    </div>
+
+                    <!-- 닉네임 -->
+                    <div class="field">
+                        <label class="label" for="nickname">닉네임</label>
+                        <div class="input-row">
+                            <input
+                                id="nickname"
+                                class="input"
+                                type="text"
+                                placeholder="우동마켓에서 사용할 별명"
+                                oninput="validateNickname()"
+                            />
+                            <div class="right-slot">
+                                <button type="button" class="gray-btn" onclick="checkNicknameDuplicate()">
+                                    중복 확인
+                                </button>
+                            </div>
+                        </div>
+                        <p id="nicknameMsg" class="hint"></p>
+                    </div>
+
+                    <hr class="divider" />
+
+                    <!-- 2. 본인 인증 -->
+                    <h2 class="section-title">2. 본인 인증</h2>
+
+                    <!-- 이름 -->
+                    <div class="field">
+                        <label class="label" for="name">이름</label>
+                        <input
+                            id="name"
+                            class="input"
+                            type="text"
+                            placeholder="실명 입력"
+                        />
+                    </div>
+
+                    <!-- 생년월일 + 성별 -->
+                    <div class="field">
+                        <label class="label" for="birth">생년월일</label>
+                        <div class="birth-row">
+                            <input
+                                id="birth"
+                                class="input birth-input"
+                                type="text"
+                                placeholder="6자리 (예: 900101)"
+                                maxlength="6"
+                                inputmode="numeric"
+                            />
+                            <span class="birth-dash" aria-hidden="true">-</span>
+                            <input
+                                id="genderDigit"
+                                class="birth-digit"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="1"
+                                placeholder="1"
+                            />
+                            <span class="birth-mask" aria-hidden="true">●●●●●●</span>
+                        </div>
+                    </div>
+
+                    <!-- 통신사 -->
+                    <div class="field">
+                        <label class="label" for="carrier">통신사</label>
+                        <div class="select-wrap">
+                            <select id="carrier" class="select">
+                                <option value="" disabled selected>선택해주세요</option>
+                                <option value="skt">SKT</option>
+                                <option value="kt">KT</option>
+                                <option value="lgu">LG U+</option>
+                                <option value="mvno">알뜰폰(MVNO)</option>
+                            </select>
+                            <span class="chevron" aria-hidden="true"></span>
+                        </div>
+                    </div>
+
+                    <!-- 휴대폰 번호 -->
+                    <div class="field">
+                        <label class="label" for="phone">휴대폰 번호</label>
+                        <div class="input-row">
+                            <input
+                                id="phone"
+                                class="input"
+                                type="tel"
+                                placeholder="- 없이 숫자만 입력"
+                                inputmode="numeric"
+                            />
+                            <div class="right-slot">
+                                <button type="button" class="outline-btn" onclick="sendVerificationCode()">
+                                    인증번호 발송
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 인증번호 -->
+                    <div class="field">
+                        <label class="label" for="otp">인증번호</label>
+                        <div class="input-row">
+                            <input
+                                id="otp"
+                                class="input"
+                                type="text"
+                                placeholder="인증번호 6자리 입력"
+                                maxlength="6"
+                                inputmode="numeric"
+                            />
+                            <div class="right-slot">
+                                <button type="button" class="gray-btn" onclick="verifySmsCode()">
+                                    인증 확인
+                                </button>
+                            </div>
+                        </div>
+                        <p id="otpMsg" class="hint">인증번호를 받으신 뒤 입력해주세요.</p>
+                    </div>
+
+                    <hr class="divider" />
+
+                    <!-- 3. 약관 동의 -->
+                    <h2 class="section-title">3. 약관 동의</h2>
+
+                    <div class="agree-box">
+                        <div class="check-row">
+                            <label class="check-label check-strong">
+                                <input type="checkbox" id="agreeAll" onchange="toggleAllAgreements(this)"/>
+                                <span class="check-fake" aria-hidden="true"></span>
+                                <span>약관 전체 동의</span>
+                            </label>
+                        </div>
+
+                        <div class="agree-list">
+                            <div class="check-row">
+                                <label class="check-label">
+                                    <input type="checkbox" class="agree-checkbox" onchange="updateAllCheckbox()"/>
+                                    <span class="check-fake" aria-hidden="true"></span>
+                                    <span>[필수] 우동마켓 이용약관 동의</span>
+                                </label>
+                                <button type="button" class="view-link" onclick="alert('이용약관 보기')">보기</button>
+                            </div>
+
+                            <div class="check-row">
+                                <label class="check-label">
+                                    <input type="checkbox" class="agree-checkbox" onchange="updateAllCheckbox()"/>
+                                    <span class="check-fake" aria-hidden="true"></span>
+                                    <span>[필수] 개인정보 수집 및 이용 동의</span>
+                                </label>
+                                <button type="button" class="view-link" onclick="alert('개인정보 동의 보기')">보기</button>
+                            </div>
+
+                            <div class="check-row">
+                                <label class="check-label">
+                                    <input type="checkbox" class="agree-checkbox" onchange="updateAllCheckbox()"/>
+                                    <span class="check-fake" aria-hidden="true"></span>
+                                    <span>[선택] 마케팅 정보 수신 동의</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                        id="signupBtn"
+                        disabled
+                    >
+                        가입 완료
+                    </button>
+                </form>
+
+                <div class="divider-row" aria-hidden="true">
+                    <span class="divider-line"></span>
+                    <span class="divider-text">SNS 계정으로 간편 가입</span>
+                    <span class="divider-line"></span>
+                </div>
+
+                <div class="sns-row">
+                    <button type="button" class="sns-btn kakao" aria-label="카카오로 간편가입">K</button>
+                    <button type="button" class="sns-btn naver" aria-label="네이버로 간편가입">N</button>
+                    <button type="button" class="sns-btn google" aria-label="구글로 간편가입">G</button>
+                </div>
+
+                <p class="seller-cta">
+                    우동마켓 사업자 가입을 원하시나요?
+                    <a class="seller-link" href="#seller">사업자로 가입하기</a>
+                </p>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/users';
+
+        // 이메일 중복 확인 상태
+        let emailChecked = false;
+        // SMS 인증 완료 상태
+        let smsVerified = false;
+
+        /* =====================
+           비밀번호 조건 실시간 체크
+        ===================== */
+        function checkPasswordStrength() {
+            const pw    = document.getElementById('password').value;
+            const email = document.getElementById('email').value.trim();
+            const box   = document.getElementById('pwConditions');
+
+            if (!pw) { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+
+            const conditions = [
+                { id: 'cond-length',  ok: pw.length >= 8,                      text: '8자 이상' },
+                { id: 'cond-english', ok: /[a-zA-Z]/.test(pw),                 text: '영문 포함' },
+                { id: 'cond-number',  ok: /[0-9]/.test(pw),                    text: '숫자 포함' },
+                { id: 'cond-special', ok: /[!@#$%^&*(),.?":{}|<>]/.test(pw),   text: '특수문자 포함' },
+                { id: 'cond-email',   ok: !email || pw !== email,               text: '아이디(이메일)와 다른 비밀번호' },
+            ];
+
+            conditions.forEach(({ id, ok, text }) => {
+                const el = document.getElementById(id);
+                el.textContent   = ok ? `✔ ${text}` : `✖ ${text}`;
+                el.style.color   = ok ? '#40c057' : '#fa5252';
+            });
+
+            // 비밀번호 확인 칸도 같이 업데이트
+            checkPasswordMatch();
+        }
+
+        /* =====================
+           비밀번호 보이기/숨기기
+        ===================== */
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁';
+            }
+        }
+
+        /* =====================
+           이메일 형식 실시간 검사
+        ===================== */
+        function validateEmail() {
+            const email = document.getElementById('email').value.trim();
+            const msg   = document.getElementById('emailMsg');
+            if (!email) { msg.textContent = ''; return; }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                msg.style.color = '#fa5252';
+                msg.textContent = '✖ 올바른 이메일 형식이 아닙니다. (예: example@udong.com)';
+                emailChecked = false;
+            } else {
+                msg.style.color = '#868e96';
+                msg.textContent = '이메일 중복 확인을 해주세요.';
+                emailChecked = false;
+            }
+        }
+
+        /* =====================
+           닉네임 형식 실시간 검사
+        ===================== */
+        function validateNickname() {
+            const nickname = document.getElementById('nickname').value.trim();
+            const msg      = document.getElementById('nicknameMsg');
+            if (!nickname) { msg.textContent = ''; return; }
+
+            const specialRegex = /[!@#$%^&*(),.?":{}|<>]/;
+            if (nickname.length < 2) {
+                msg.style.color = '#fa5252';
+                msg.textContent = '✖ 닉네임은 2자 이상 입력해주세요.';
+            } else if (nickname.length > 10) {
+                msg.style.color = '#fa5252';
+                msg.textContent = '✖ 닉네임은 10자 이하로 입력해주세요.';
+            } else if (specialRegex.test(nickname)) {
+                msg.style.color = '#fa5252';
+                msg.textContent = '✖ 특수문자는 사용할 수 없습니다.';
+            } else {
+                msg.style.color = '#868e96';
+                msg.textContent = '닉네임 중복 확인을 해주세요.';
+            }
+        }
+
+        /* =====================
+           비밀번호 일치 실시간 확인
+        ===================== */
+        function checkPasswordMatch() {
+            const pw  = document.getElementById('password').value;
+            const pw2 = document.getElementById('password2').value;
+            const msg = document.getElementById('pwMsg');
+            if (!pw2) { msg.textContent = ''; return; }
+            if (pw === pw2) {
+                msg.style.color = '#40c057';
+                msg.textContent = '✔ 비밀번호가 일치합니다.';
+            } else {
+                msg.style.color = '#fa5252';
+                msg.textContent = '✖ 비밀번호가 일치하지 않습니다.';
+            }
+        }
+
+        /* =====================
+           이메일 중복 확인
+        ===================== */
+        async function checkEmailDuplicate() {
+            const email = document.getElementById('email').value.trim();
+            const msg   = document.getElementById('emailMsg');
+            if (!email) { alert('이메일을 입력해주세요.'); return; }
+
+            try {
+                const res  = await fetch(`${API_BASE}/check-email?email=${encodeURIComponent(email)}`);
+                const data = await res.json();
+                if (!data.isDuplicate) {
+                    msg.style.color   = '#40c057';
+                    msg.textContent   = '✔ ' + data.message;
+                    emailChecked      = true;
+                } else {
+                    msg.style.color   = '#fa5252';
+                    msg.textContent   = '✖ ' + data.message;
+                    emailChecked      = false;
+                }
+                // 이메일 변경 시 비밀번호 조건 재체크
+                checkPasswordStrength();
+            } catch {
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        /* =====================
+           닉네임 중복 확인 (추후 API 연동)
+        ===================== */
+        function checkNicknameDuplicate() {
+            const nickname = document.getElementById('nickname').value.trim();
+            const msg      = document.getElementById('nicknameMsg');
+            if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
+            // TODO: 닉네임 중복 확인 API 연동
+            msg.style.color = '#40c057';
+            msg.textContent = '✔ 사용 가능한 닉네임입니다.';
+        }
+
+        /* =====================
+           SMS 인증번호 발송
+        ===================== */
+        async function sendVerificationCode() {
+            const phone = document.getElementById('phone').value.trim();
+            const msg   = document.getElementById('otpMsg');
+            if (!phone) { alert('휴대폰 번호를 입력해주세요.'); return; }
+
+            try {
+                const res  = await fetch(`${API_BASE}/sms/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+                const data = await res.json();
+                msg.style.color = '#495057';
+                msg.textContent = data.message || data.error;
+            } catch {
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        /* =====================
+           SMS 인증번호 확인
+        ===================== */
+        async function verifySmsCode() {
+            const phone = document.getElementById('phone').value.trim();
+            const code  = document.getElementById('otp').value.trim();
+            const msg   = document.getElementById('otpMsg');
+            if (!code) { alert('인증번호를 입력해주세요.'); return; }
+
+            try {
+                const res  = await fetch(`${API_BASE}/sms/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, code })
+                });
+                const data = await res.json();
+                if (data.verified) {
+                    smsVerified     = true;
+                    msg.style.color = '#40c057';
+                    msg.textContent = '✔ ' + data.message;
+                    document.getElementById('otp').disabled = true;
+                } else {
+                    msg.style.color = '#fa5252';
+                    msg.textContent = '✖ ' + data.message;
+                }
+            } catch {
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        /* =====================
+           약관 전체 동의 토글
+        ===================== */
+        function toggleAllAgreements(checkbox) {
+            document.querySelectorAll('.agree-checkbox').forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+            updateSignupButton();
+        }
+
+        /* =====================
+           개별 체크박스 → 전체 동의 상태 업데이트
+        ===================== */
+        function updateAllCheckbox() {
+            const allCheckboxes = document.querySelectorAll('.agree-checkbox');
+            const agreeAll      = document.getElementById('agreeAll');
+            agreeAll.checked    = Array.from(allCheckboxes).every(cb => cb.checked);
+            updateSignupButton();
+        }
+
+        /* =====================
+           가입 완료 버튼 활성화 (필수 약관 2개 체크 시)
+        ===================== */
+        function updateSignupButton() {
+            const checkboxes     = document.querySelectorAll('.agree-checkbox');
+            const requiredChecked = checkboxes[0].checked && checkboxes[1].checked;
+            document.getElementById('signupBtn').disabled = !requiredChecked;
+        }
+
+        /* =====================
+           회원가입 폼 제출
+        ===================== */
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // 유효성 검사
+            if (!emailChecked) {
+                alert('이메일 중복 확인을 해주세요.');
+                return;
+            }
+            if (!smsVerified) {
+                alert('휴대폰 인증을 완료해주세요.');
+                return;
+            }
+
+            const pw  = document.getElementById('password').value;
+            const pw2 = document.getElementById('password2').value;
+            if (pw !== pw2) {
+                alert('비밀번호가 일치하지 않습니다.');
+                return;
+            }
+
+            const formData = {
+                email:       document.getElementById('email').value.trim(),
+                password:    pw,
+                password2:   pw2,
+                nickname:    document.getElementById('nickname').value.trim(),
+                name:        document.getElementById('name').value.trim(),
+                birth:       document.getElementById('birth').value.trim(),
+                genderDigit: document.getElementById('genderDigit').value.trim(),
+                carrier:     document.getElementById('carrier').value,
+                phone:       document.getElementById('phone').value.trim(),
+                otp:         document.getElementById('otp').value.trim(),
+                userType:    'user'
+            };
+
+            try {
+                const res  = await fetch(`${API_BASE}/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    if (data.accessToken) {
+                        localStorage.setItem('accessToken', data.accessToken);
+                    }
+                    alert(data.message || '회원가입이 완료되었습니다!');
+                    location.href = 'SignupComplete.html';
+                } else {
+                    alert(data.error || '회원가입에 실패했습니다.');
+                }
+            } catch {
+                alert('서버 연결에 실패했습니다.');
+            }
+        });
+
+        /* =====================
+           SNS 간편가입 버튼
+        ===================== */
+        document.querySelectorAll('.sns-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                if (this.classList.contains('kakao')) {
+                    // 백엔드가 카카오 로그인 페이지로 리다이렉트해줌
+                    location.href = 'http://localhost:8080/api/oauth/kakao';
+                } else if (this.classList.contains('naver')) {
+                    location.href = 'http://localhost:8080/api/oauth/naver';
+                } else if (this.classList.contains('google')) {
+                    location.href = 'http://localhost:8080/api/oauth/google';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

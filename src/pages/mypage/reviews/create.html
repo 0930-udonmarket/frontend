@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reviews-create</title>
+    <link href="../../../css/mypage/reviews/reviews-create.css" rel="stylesheet">
+    <link rel="icon" href="../../../../public/favicon.ico">
+    <script>
+        window.__skipHeader = true;
+    </script>
+    <script src="../../js/common.js"></script>
+</head>
+
+<body>
+    <!-- 미니 헤더 (로고만) -->
+    <header class="mini-header">
+        <a href="../../main/main.html" class="mini-header-logo-link">
+            <img src="../../../assets/logo.png" alt="우동마켓" class="mini-header-logo" />
+            <div class="mini-header-logo-text">
+                <img src="../../../assets/logo-text.png" alt="우동마켓" />
+            </div>
+        </a>
+    </header>
+
+    <div class="main">
+        <div class="header">
+            <svg class="chevron w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="m14 8-4 4 4 4" />
+            </svg>
+            <h2 class="header-title">리뷰 쓰기</h2>
+        </div>
+
+        <div class="content">
+            <div class="product-container">
+                <div class="product-info">
+                    <div class="product-img"></div>
+                    <div class="product-name"></div>
+                </div>
+            </div>
+
+            <div class="rating-container">
+                <div class="rating-text">상품에 만족하셨나요?</div>
+                <div class="stars" id="starRating">
+                    <div class="star" data-rating="1">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                        </svg>
+                    </div>
+                    <div class="star" data-rating="2">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                        </svg>
+                    </div>
+                    <div class="star" data-rating="3">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                        </svg>
+                    </div>
+                    <div class="star" data-rating="4">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                        </svg>
+                    </div>
+                    <div class="star" data-rating="5">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review Container -->
+            <div class="review-container">
+                <div class="review-header">
+                    <div class="review-title">리뷰 작성</div>
+                    <div class="char-count"><span id="charCount">0</span>/500</div>
+                </div>
+
+                <!-- Photo Container -->
+                <div class="photo-container">
+                    <div class="uploade-box">
+                        <input type="file" id="photo-upload" accept="image/*" multiple>
+                        <label for="photo-upload" class="upload-label">
+                            <div class="photo-icon">
+                                <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                    viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 18V8a1 1 0 0 1 1-1h1.5l1.707-1.707A1 1 0 0 1 8.914 5h6.172a1 1 0 0 1 .707.293L17.5 7H19a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z" />
+                                    <path stroke="currentColor" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+
+                            </div>
+                        </label>
+                    </div>
+                    <div id="photo-preview-container" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                </div>
+                <textarea class="review-textarea" id="reviewText"
+                    placeholder="상품에 대한 솔직한 리뷰를 작성해 주세요. (최소 20자 이상)"></textarea>
+
+            </div>
+
+            <div class="for-hr">
+
+            </div>
+
+            <!-- Submit Button -->
+            <div class="submit-container">
+                <button class="submit-btn">작성 완료</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+
+        document.querySelector(".chevron")?.addEventListener('click', () => {
+            window.location.href = '../orders.html';
+        })
+
+        document.getElementById("photo-upload").addEventListener('change', (e) => {
+            const files = e.target.files;
+            const previewContainer = document.getElementById("photo-preview-container");
+            previewContainer.innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                const fr = new FileReader();
+                fr.onload = (event) => {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.style.width = '80px';
+                    img.style.height = '80px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    previewContainer.appendChild(img);
+                };
+                fr.readAsDataURL(file);
+            })
+        });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('postId');
+
+            if (postId) {
+                try {
+                    const postResponse = await fetch(`http://localhost:8080/api/v1/posts/${postId}`);
+                    if (postResponse.ok) {
+                        const postData = await postResponse.json();
+                        document.querySelector(".product-name").textContent = postData.title;
+                        
+                        const productImg = document.querySelector(".product-img");
+                        if (postData.image) {
+                            const imagePath = postData.image.replace('../../', '../../../');
+                            productImg.innerHTML = `<img src="${imagePath}" style="width:100%; height:100%; object-fit:cover;" />`;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("상품 정보 로드 실패", e);
+                }
+            }
+            let selectedRating = 0;
+            const stars = document.querySelectorAll('.star');
+            const textarea = document.getElementById('reviewText');
+            const charCount = document.getElementById('charCount');
+            const photoInput = document.getElementById('photo-upload');
+            const submitBtn = document.querySelector('.submit-btn');
+
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    selectedRating = parseInt(star.getAttribute('data-rating'));
+
+                    stars.forEach(s => {
+                        const sRating = parseInt(s.getAttribute('data-rating'));
+                        if (sRating <= selectedRating) {
+                            s.classList.add('active');
+                        } else {
+                            s.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            textarea.addEventListener('input', () => {
+                const length = textarea.value.length;
+                charCount.textContent = length;
+
+                if (length > 500) {
+                    textarea.value = textarea.value.substring(0, 500);
+                    charCount.textContent = 500;
+                }
+            });
+
+            // submitBtn?.addEventListener('click', async () => {
+            document.querySelector('.submit-btn').onclick = async function() {
+
+                const content = textarea.value.trim();
+
+                if (selectedRating === 0) {
+                    alert("별점을 선택해 주세요.");
+                    return;
+                }
+                if (content.length < 20) {
+                    alert("리뷰를 최소 20글자 이상 작성해 주세요.");
+                    return;
+                }
+            
+                // 동적 데이터 수집
+                // URL에서 productID, postId를 가져오거나, 세션에서 유저 정보를 가져오는 방식
+                const urlParams = new URLSearchParams(window.location.search);
+
+                const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+                const postId = urlParams.get('postId');
+
+                if (!userId || !postId) {
+                    alert("잘못된 접근입니다.");
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('userId', userId);      // ✅ 추가
+                formData.append('postId', postId);      // ✅ 추가
+                formData.append('content', content);
+                formData.append('rating', selectedRating);
+
+                // 이미지 파일들 추가
+                const files = photoInput.files;
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
+
+ 
+                try {
+                    const response = await fetch('http://localhost:8080/api/review/insert', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        alert("등록되었습니다.");
+                        // location.replace('./list.html');
+                        window.location.href = './list.html';
+                        // setTimeout(() => {
+                        //     window.location.href = './list.html';
+                        // }, 500);
+                    } /* else {
+                        alert("등록 실패: 서버 오류 발생");
+                    } */
+                } catch (error) {
+                    console.error("전송 중 에러 발생: ", error);
+                    alert("네트워크 오류가 발생했습니다.");
+                }
+
+            };
+            // });
+        });
+    </script>
+</body>
+
+</html>
