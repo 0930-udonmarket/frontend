@@ -6,10 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mypage-edit</title>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-    <script
-      type="text/javascript"
-      src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=01414d5bef98a8eb5d42a723a752b9b6&libraries=services"
-    ></script>
+    <script type="text/javascript"
+        src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=01414d5bef98a8eb5d42a723a752b9b6&libraries=services"></script>
     <link href="../../css/mypage/mypage-edit.css" rel="stylesheet">
     <link rel="icon" href="../../../public/favicon.ico">
     <script>
@@ -51,24 +49,20 @@
 
         <div class="content">
             <div class="container profile">
-                <div class="user-img-container">
-                    <div class="user-img"></div>
-                    <div class="user-img-update">
-
-                        <div class="user-img-update-icon">
-                            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
-                                xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M10.779 17.779 4.36 19.918 6.5 13.5m4.279 4.279 8.364-8.643a3.027 3.027 0 0 0-2.14-5.165 3.03 3.03 0 0 0-2.14.886L6.5 13.5m4.279 4.279L6.499 13.5m2.14 2.14 6.213-6.504M12.75 7.04 17 11.28" />
-                            </svg>
-        
-                        </div>
-                </div>
+                <div class="user-img">
+                    <svg class="profile-icon w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                        viewBox="0 0 24 24">
+                        <path fill-rule="evenodd"
+                            d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z"
+                            clip-rule="evenodd" />
+                    </svg>
 
                 </div>
                 <div class="user-info">
                     <div class="name"></div>
                 </div>
+                
                 <button class="edit-btn" id="edit-name" onclick="openNicknameModal()">수정</button>
             </div>
 
@@ -81,8 +75,6 @@
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M17.8 13.938h-.011a7 7 0 1 0-11.464.144h-.016l.14.171c.1.127.2.251.3.371L12 21l5.13-6.248c.194-.209.374-.429.54-.659l.13-.155Z" />
                     </svg>
-
-
                 </div>
                 <div class="detail address"></div>
                 <button class="edit-btn" onclick="openAddrOrAuth()">수정</button>
@@ -108,8 +100,11 @@
                 <p class="delete">회원탈퇴</p>
             </div>
 
-
         </div>
+
+
+
+    </div>
 
     </div>
 
@@ -211,7 +206,7 @@
             // startGpsAuth 사용을 위해 initCommon 호출
             try {
                 await initCommon();
-            } catch(e) {
+            } catch (e) {
                 // 헤더 요소 없어서 나는 에러는 무시
             }
         });
@@ -353,7 +348,7 @@
 
         //         // 데이터가 있는지 먼저 확인
         //         if (addressData.length > 0) {
-                    
+
         //             const firstLocation = addressData[0];
         //             console.log(addressData[0]);
         //             const fullAddress = `${firstLocation.sido} ${firstLocation.sigungu} ${firstLocation.legalDong}`;

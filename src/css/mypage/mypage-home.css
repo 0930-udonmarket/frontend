@@ -97,12 +97,10 @@ body {
 
 }
 
-.user-img {
-    border: 1px solid black;
+.profile-icon {
     width: 70px;
     height: 70px;
-    border-radius: 100%;
-
+    color: #FF6F0F;
 }
 
 .user-info {
