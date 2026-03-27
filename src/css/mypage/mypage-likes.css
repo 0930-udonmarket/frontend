@@ -1,0 +1,182 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #F8F9FA;
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.main {
+    display: flex;
+    gap: 30px;
+    max-width: 1560px;
+    margin: 0 auto;
+    padding: 120px 20px 60px;
+    background-color: #F8F9FA;
+    align-items: flex-start;
+}
+
+.menu {
+    position: sticky;
+    top: 120px;
+    width: 240px;
+    min-width: 240px;
+    height: fit-content;
+    padding: 20px;
+    background-color: white;
+    border: 1px solid #E9ECEF;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.menu-title {
+    font-weight: bold;
+    font-size: 22px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #E9ECEF;
+}
+
+.items {
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    color: #495057;
+    gap: 16px;
+    cursor: pointer;
+}
+
+.items .active {
+    color: #FF6F0F;
+    font-weight: bold;
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.transaction-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.transaction-card {
+    border: 2px solid #FF6F0F;
+    background-color: #FFFFFF;
+    border-radius: 12px;
+    padding: 30px;
+}
+
+.transaction-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.product-img {
+    border: 1px solid black;
+    border-radius: 8px;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+.product-info {
+    flex: 1;
+}
+
+.product-title {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.product-meta {
+    color: #868E96;
+    font-size: 14px;
+}
+
+.likes-icon {
+    color: #FF6F0F;
+    cursor: pointer;
+}
+
+/* 거래 중 transaction card 스타일 시작 */
+.price {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.transaction-card.ing .icon-container {
+    display: flex;
+    align-items: center;
+    gap: 70px;
+    margin-left: 30px;
+}
+
+.move-icon {
+    color: #B3B3B3;
+    cursor: pointer;
+}
+/* 거래 중 transaction card 스타일 종료*/
+
+/* 거래 완료 transaction card 스타일 시작 */
+.transaction-card.end .icon-container {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.status {
+    font-weight: bold;
+    font-size: 16px;
+    color: #868E96;
+    width: 70px;
+    text-align: center;
+}
+/* 거래 완료 transaction card 스타일 종료 */
+
+/* 미니 헤더 스타일 */
+.mini-header {
+    width: 100%;
+    height: 80px;
+    background-color: #fff;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.mini-header-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    text-decoration: none;
+}
+
+.mini-header-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+}
+
+.mini-header-logo-text img {
+    height: 50px;
+    object-fit: contain;
+}
