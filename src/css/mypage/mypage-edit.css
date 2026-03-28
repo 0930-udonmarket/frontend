@@ -4,36 +4,87 @@
     box-sizing: border-box;
 }
 
-body {
-    background-color: #F8F9FA;
+:root {
+    --primary: #ff6f0f;
+    --text-dark: #212529;
+    --text-gray: #868e96;
+    --bg-light: #f8f9fa;
+    --border: #e9ecef;
+    --white: #ffffff;
+    --header-height: 80px;
+}
+
+html {
+    /* 스크롤바 자리를 항상 확보해서 레이아웃이 밀리는 걸 방지 */
+    scrollbar-gutter: stable;
+}
+
+html, body {
     width: 100%;
     min-height: 100vh;
-    position: relative;
+    background-color: var(--bg-light);
     overflow-y: auto;
     overflow-x: hidden;
 }
 
+/* 미니 헤더 */
+.mini-header {
+    width: 100%;
+    height: var(--header-height);
+    background-color: var(--white);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.mini-header-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.mini-header-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 50%;
+}
+
+.mini-header-logo-text img {
+    height: 24px;
+    object-fit: contain;
+    display: block;
+}
+
+/* 메인 레이아웃 */
 .main {
+    width: 100%;
+    max-width: 1560px;  /* ← 수정 */
+    margin: 0 auto;
     display: flex;
     gap: 30px;
-    max-width: 1560px;
-    margin: 0 auto;
-    padding: 120px 20px 60px;
-    background-color: #F8F9FA;
+    padding: 30px 20px;  /* ← 수정 */
+    background-color: var(--bg-light);
     align-items: flex-start;
 }
 
+/* 사이드 메뉴 */
 .menu {
-    position: sticky;
-    top: 120px;
     width: 240px;
-    min-width: 240px;
-    height: fit-content;
-    padding: 20px;
-    background-color: white;
-    border: 1px solid #E9ECEF;
-    border-radius: 8px;
     flex-shrink: 0;
+    padding: 20px;
+    background-color: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: sticky;  /* ← 수정 */
+    top: 100px;        /* ← 수정 */
+    min-height: 600px;
 }
 
 .menu-title {
@@ -41,7 +92,7 @@ body {
     font-size: 22px;
     margin-bottom: 20px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #E9ECEF;
+    border-bottom: 1px solid var(--border);
 }
 
 .items {
@@ -54,7 +105,7 @@ body {
 }
 
 .items .active {
-    color: #FF6F0F;
+    color: var(--primary);
     font-weight: bold;
 }
 
@@ -154,39 +205,6 @@ body {
 .delete {
     cursor: pointer;
     color: #FA4400;
-}
-
-/* 미니 헤더 스타일 */
-.mini-header {
-    width: 100%;
-    height: 80px;
-    background-color: #fff;
-    border-bottom: 1px solid #e9ecef;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-}
-
-.mini-header-logo-link {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    text-decoration: none;
-}
-
-.mini-header-logo {
-    width: 50px;
-    height: 50px;
-    object-fit: contain;
-}
-
-.mini-header-logo-text img {
-    height: 50px;
-    object-fit: contain;
 }
 
 /* 모달 오버레이 */

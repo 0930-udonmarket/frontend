@@ -14,6 +14,11 @@
     --header-height: 80px;
 }
 
+html {
+    /* 스크롤바 자리를 항상 확보해서 레이아웃이 밀리는 걸 방지 */
+    scrollbar-gutter: stable;
+}
+
 html, body {
     width: 100%;
     min-height: 100vh;
