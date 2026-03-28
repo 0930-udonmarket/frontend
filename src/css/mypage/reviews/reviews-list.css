@@ -175,3 +175,26 @@ html, body {
     cursor: pointer;
     flex-shrink: 0;
 }
+
+.stars {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.star {
+    width: 18px;
+    height: 18px;
+}
+
+.star svg {
+    width: 100%;
+    height: 100%;
+    fill: #dee2e6;
+    stroke: none;
+}
+
+.star.active svg {
+    fill: #FEE500;
+    stroke: none;
+}
