@@ -567,9 +567,27 @@
                 const data = await res.json();
 
                 if (res.ok) {
+                    // 토큰 저장 (키 이름 통일)
                     if (data.accessToken) {
                         localStorage.setItem('accessToken', data.accessToken);
+                        localStorage.setItem('udong_access_token', data.accessToken);
                     }
+                    if (data.refreshToken) {
+                        localStorage.setItem('refreshToken', data.refreshToken);
+                    }
+                    if (data.userId) {
+                        localStorage.setItem('userId', String(data.userId));
+                    }
+
+                    // common.js 로그인 상태 저장
+                    localStorage.setItem('udong_is_logged_in', 'true');
+                    localStorage.setItem('udong_user_role', 'buyer');
+                    localStorage.setItem('udong_user_info', JSON.stringify({
+                        nickname: formData.nickname,
+                        email: formData.email,
+                        userId: data.userId || ''
+                    }));
+
                     alert(data.message || '회원가입이 완료되었습니다!');
                     location.href = 'SignupComplete.html';
                 } else {
