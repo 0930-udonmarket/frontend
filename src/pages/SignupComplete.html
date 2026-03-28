@@ -133,11 +133,12 @@
            동네 인증하기 버튼
         ================================================ */
         function handleVerifyLocation() {
-            // initCommon이 완료될 때까지 잠깐 기다림
+            // 인증 완료 후 메인으로 이동하도록 플래그 설정
+            window.__afterAuthRedirect = 'main/main.html';
+
             if (typeof window.startGpsAuth === 'function') {
                 window.startGpsAuth(-1);
             } else {
-                // 아직 로드 안 됐으면 100ms 후 재시도
                 setTimeout(() => {
                     if (typeof window.startGpsAuth === 'function') {
                         window.startGpsAuth(-1);
