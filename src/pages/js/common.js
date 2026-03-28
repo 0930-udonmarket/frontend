@@ -10,18 +10,18 @@ const UdongAPI = {
   // 1. 사용자 위치(동네) 정보 가져오기
   getUserLocations: async (role) => {
     /* === [나중에 활성화할 실제 API 요청 코드] ===
-    // (프론트엔드에서 백엔드 서버로 실제 데이터를 요청하는 통신 코드)
-    try {
-      const token = localStorage.getItem("udong_access_token");
-      const response = await fetch(`/api/v1/users/locations?role=${role}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error("서버 응답 오류");
-      return await response.json();
-    } catch (error) {
-      console.error("위치 정보 로드 실패:", error);
-      return []; // 에러 발생 시 빈 배열 반환으로 화면 깨짐 방지
-    }
+    // // (프론트엔드에서 백엔드 서버로 실제 데이터를 요청하는 통신 코드)
+    // try {
+    //   const token = localStorage.getItem("udong_access_token");
+    //   const response = await fetch(`/api/v1/users/locations?role=${role}`, {
+    //     headers: { "Authorization": `Bearer ${token}` }
+    //   });
+    //   if (!response.ok) throw new Error("서버 응답 오류");
+    //   return await response.json();
+    // } catch (error) {
+    //   console.error("위치 정보 로드 실패:", error);
+    //   return []; // 에러 발생 시 빈 배열 반환으로 화면 깨짐 방지
+    // }
     ============================================= */
 
     // [핵심 로직] 로컬 스토리지 확인 전, KV 서버에서 최신 인증 정보를 불러오도록 시도
@@ -666,13 +666,13 @@ async function injectHeader() {
       rightMenuHTML = `
         ${chatMenuHTML}
         <div class="header-action-item" id="notiMenuContainer"><span class="header-action">알림</span><span class="badge" id="notiBadge" style="display: none;">0</span><div class="action-dropdown" id="notiDropdown"><ul class="dropdown-list" id="notiList"></ul></div></div>
-        <div class="header-action-item user-dropdown-container" id="userMenuContainer"><span class="header-action user-nickname" title="${myInfo.nickname}">${myInfo.nickname}님</span><div class="action-dropdown" id="userMenuDropdown"><ul class="dropdown-list"><li class="user-menu-item" onclick="location.href='/pages/mypage/main.html'">마이페이지</li><li class="user-menu-item" onclick="localStorage.setItem('udong_is_logged_in','false'); localStorage.removeItem('udong_user_role'); localStorage.removeItem('udong_user_info'); location.reload();">로그아웃</li></ul></div></div>
+        <div class="header-action-item user-dropdown-container" id="userMenuContainer"><span class="header-action user-nickname" title="${myInfo.nickname}">${myInfo.nickname}님</span><div class="action-dropdown" id="userMenuDropdown"><ul class="dropdown-list"><li class="user-menu-item" onclick="location.href='/src/pages/mypage/home.html'">마이페이지</li><li class="user-menu-item" onclick="localStorage.setItem('udong_is_logged_in','false'); localStorage.removeItem('udong_user_role'); localStorage.removeItem('udong_user_info'); location.reload();">로그아웃</li></ul></div></div>
         <a href="#" id="btnOpenGroup" class="btn-open-group">공구 열기</a>
       `;
     }
   } else {
     rightMenuHTML = `
-      <a href="#" onclick="alert('로그인 페이지로 이동합니다.'); return false;" class="header-action btn-login-text">로그인/회원가입</a>
+      <a href="/src/pages/Login.html" class="header-action btn-login-text">로그인/회원가입</a>
       <a href="#" id="btnOpenGroup" class="btn-open-group disabled">공구 열기</a>
     `;
   }
@@ -866,7 +866,7 @@ async function initCommon() {
       if (btnOpenGroup.classList.contains("disabled")) {
         if (!isLoggedIn) {
           if (confirm("로그인이 필요한 서비스입니다.\n로그인 하시겠습니까?"))
-            location.href = "/pages/login/login.html";
+            location.href = "/src/pages/Login.html";
         } else if (userRole === "buyer") {
           alert("📢 유효한 동네 인증을 완료해야 공구를 열 수 있습니다!");
         }
@@ -890,7 +890,7 @@ async function initCommon() {
         <div style="text-align:center; padding:10px 5px; color:#868e96; font-size:13px; line-height:1.4;">
           로그인 후<br><strong>인증</strong>을 진행해주세요.
         </div>
-        <button onclick="location.href='/pages/login/login.html'" style="width:100%; margin-top:5px; background:#f1f3f5; border:none; padding:8px; border-radius:4px; font-weight:700; cursor:pointer; color:#495057;">로그인하기</button>
+        <button onclick="location.href='/src/pages/Login.html'" style="width:100%; margin-top:5px; background:#f1f3f5; border:none; padding:8px; border-radius:4px; font-weight:700; cursor:pointer; color:#495057;">로그인하기</button>
       `;
       infoLi.style.cursor = "default";
       locationList.appendChild(infoLi);
@@ -3677,6 +3677,7 @@ function initLoginToggle() {
     if (!isLoggedIn) {
       localStorage.setItem("udong_is_logged_in", "true");
       localStorage.setItem("udong_user_role", "buyer");
+      localStorage.setItem("userId", "1"); // 임시 ID 추가!
       localStorage.setItem(
         "udong_user_info",
         JSON.stringify({ nickname: "우동이" }),

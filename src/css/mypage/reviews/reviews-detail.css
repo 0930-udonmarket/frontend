@@ -93,7 +93,7 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 20px;
 }
 
 .for-hr {
@@ -127,22 +127,16 @@ html, body {
     gap: 15px;
 }
 
-/*.user-img {
-    border: 1px solid black;
+.profile-icon {
     width: 50px;
     height: 50px;
-    border-radius: 100%;
-    flex-shrink: 0;
-}*/
-
-.profile-icon {
-    width: 70px;
-    height: 70px;
     color: #FF6F0F;
+    display: block;
 }
 
 .user-name {
     font-size: 17px;
+    display: flex;
 }
 
 .review-info-container {
@@ -219,9 +213,9 @@ html, body {
 
 .delete-btn {
     width: 100%;
-    margin-top: 16px;
+    margin-top: 20px;
     padding: 14px 0;
-    background-color: #fa5252;
+    background-color: #FA4400;
     color: white;
     border: none;
     border-radius: 8px;
@@ -232,5 +226,5 @@ html, body {
 }
 
 .delete-btn:hover {
-    background-color: #e03131;
+    background-color: #c53400;
 }
