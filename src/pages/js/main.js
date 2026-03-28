@@ -1,37 +1,19 @@
-// 로컬 상품 이미지 목록 (item.id 기반으로 순환)
-const PRODUCT_IMAGES = [
-  '../../images/main/baby_toy.jpg',
-  '../../images/main/bagel.jpg',
-  '../../images/main/beef.jpg',
-  '../../images/main/bodywash.jpg',
-  '../../images/main/book.jpg',
-  '../../images/main/cable.jpg',
-  '../../images/main/cat_snack.jpg',
-  '../../images/main/diaper.jpg',
-  '../../images/main/dog_wash.jpg',
-  '../../images/main/egg.jpg',
-  '../../images/main/nintendo.jpg',
-  '../../images/main/shirts.jpg',
-  '../../images/main/shuttlecock.jpg',
-  '../../images/main/stand.jpg',
-  '../../images/main/tangerine.jpg',
-  '../../images/main/zipperback.jpg',
-];
-
 document.addEventListener("DOMContentLoaded", () => {
   const IS_LOGGED_IN = localStorage.getItem("udong_is_logged_in") === "true";
   const USER_ROLE = localStorage.getItem("udong_user_role") || "buyer";
-  const MY_INFO = JSON.parse(localStorage.getItem("udong_user_info")) || {
-    nickname: "익명",
-  };
+  let MY_INFO = { nickname: "익명" };
+  try {
+    const saved = localStorage.getItem("udong_user_info");
+    if (saved) MY_INFO = JSON.parse(saved);
+  } catch (e) {
+    console.warn("사용자 정보 파싱 실패, 기본값을 사용합니다.");
+  }
 
   if (IS_LOGGED_IN) {
     document.body.classList.add(`role-${USER_ROLE}`);
   }
 
   const MAX_PRICE = 100000;
-  const WISHLIST_KEY = "udong_wishlist";
-  const SEARCH_HISTORY_KEY = "udong_search_history";
 
   const state = {
     keyword: "",
@@ -47,6 +29,26 @@ document.addEventListener("DOMContentLoaded", () => {
     viewMode: "products",
     role: USER_ROLE,
   };
+
+  // [추가] 청크 단위 무한 스크롤 상태 관리 변수
+  let chunkPage = 1;
+  let isFetchingNextChunk = false;
+  let hasMoreChunks = true;
+
+  // [추가] 무한 스크롤 이벤트 리스너
+  window.addEventListener("scroll", () => {
+    if (isFetchingNextChunk || !hasMoreChunks) return;
+
+    const scrollable =
+      document.documentElement.scrollHeight - window.innerHeight;
+    const scrolled = window.scrollY;
+
+    // 바닥에 거의 다다랐을 때 (여백 200px) 다음 데이터 100개(청크) 요청
+    if (Math.ceil(scrolled) + 200 >= scrollable) {
+      chunkPage++;
+      renderRevised(false, true, true); // 세 번째 인자 isLoadMore = true 로 전달
+    }
+  });
 
   const productGrid = document.getElementById("productGrid");
   const feedTitle = document.getElementById("feedTitle");
@@ -68,55 +70,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const recentItemsList = document.getElementById("recentItemsList");
   const btnClearRecent = document.getElementById("btnClearRecent");
 
-  const LOCATION_COORDS = {
-    역삼1동: { lat: 37.4954, lon: 127.0333 },
-    논현1동: { lat: 37.5111, lon: 127.0212 },
-    청담동: { lat: 37.524, lon: 127.0495 },
-    삼성동: { lat: 37.5143, lon: 127.0565 },
-    도곡동: { lat: 37.4908, lon: 127.0463 },
-    시흥3동: { lat: 37.4365, lon: 126.9026 },
-    시흥1동: { lat: 37.4523, lon: 126.9001 },
-    시흥2동: { lat: 37.4452, lon: 126.9082 },
-    독산2동: { lat: 37.4651, lon: 126.8981 },
-    default: { lat: 37.4979, lon: 127.0276 },
-  };
-
-  /* ==========================================================================
-     [1] 가짜 데이터베이스 (MOCK_DB)
-     ========================================================================== */
-  let MOCK_DB = { products: [], requests: [] };
-
-  /* ==========================================================================
-     [2] 유틸리티 함수 (좌표 생성, 시간 파싱 등)
-     ========================================================================== */
-  function getHashFromString(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      let char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  }
-
-  function getRandomCoords(baseCoords, seedStr) {
-    if (!baseCoords) return null;
-    const hash = getHashFromString(seedStr);
-    const latOffset = ((hash % 100) / 100 - 0.5) * 0.02;
-    const lonOffset = (((hash / 100) % 100) / 100 - 0.5) * 0.02;
-    return { lat: baseCoords.lat + latOffset, lon: baseCoords.lon + lonOffset };
-  }
-
   function parseCustomDate(str) {
-    if (!str) return null;
+    if (!str || String(str).length < 12) return null;
     const s = String(str);
-    // ISO 형식 처리 (백엔드에서 오는 "2026-03-19T15:46:26" 형식)
-    if (s.includes('-') || s.includes('T')) {
-      const d = new Date(s);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    // 기존 커스텀 형식 처리 ("202601291200" 형식)
-    if (s.length < 12) return null;
     return new Date(
       parseInt(s.substring(0, 4)),
       parseInt(s.substring(4, 6)) - 1,
@@ -167,80 +123,16 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  function initializeDBWithCoords() {
-    const inject = (list) => {
-      list.forEach((item) => {
-        const baseCoords =
-          LOCATION_COORDS[item.location] || LOCATION_COORDS["default"];
-        const seedStr = item.timestamp + item.title;
-        const coords = getRandomCoords(baseCoords, seedStr);
-        item.lat = coords.lat;
-        item.lon = coords.lon;
-
-        let cardRoadName = item.location;
-        if (window.roadMappingData) {
-          const sido = "서울특별시";
-          const gu = window.getUpperRegion(item.location).split(" ")[1] || "";
-          const key1 = `${sido} ${gu} ${item.location}`;
-          const key2 = `${sido} ${gu} ${item.location.replace("제", "")}`;
-          let roadArray =
-            window.roadMappingData[key1] || window.roadMappingData[key2];
-
-          if (!roadArray) {
-            for (const k in window.roadMappingData) {
-              if (k.endsWith(" " + item.location)) {
-                roadArray = window.roadMappingData[k];
-                break;
-              }
-            }
-          }
-          if (roadArray && roadArray.length > 0) {
-            const hash = getHashFromString(seedStr);
-            item.roadAddr = roadArray[hash % roadArray.length];
-          } else {
-            item.roadAddr = cardRoadName;
-          }
-        }
-      });
-    };
-    inject(MOCK_DB.products);
-    inject(MOCK_DB.requests);
-  }
-
   /* ==========================================================================
-     [3] 백엔드 서버를 흉내내는 Mock API
+     [3] 백엔드 서버를 흉내내는 Mock API (백엔드 연동 대비용)
      ========================================================================== */
-  const MockAPI = {
+  const FeedAPI = {
     init: async () => {
-      try {
-        const response = await fetch("http://localhost:8080/api/v1/init-data");
-        if (!response.ok) throw new Error("데이터를 불러올 수 없습니다.");
-        MOCK_DB = await response.json();
-      } catch (error) {
-        console.error("초기 데이터 로드 실패:", error);
-      }
+      // 리팩토링: 데이터 로드 및 가공 권한을 UdongAPI로 완전히 넘김
+      // await UdongAPI.initFeedData();
     },
-
     fetchFeed: async (viewMode, stateFilters, userContext) => {
-      const params = new URLSearchParams({
-        viewMode: viewMode,
-        category: stateFilters.category,
-        keyword: stateFilters.keyword,
-        sort: stateFilters.sort,
-        lat: userContext.lat,
-        lon: userContext.lon
-      });
-      const response = await fetch(`http://localhost:8080/api/v1/feed?${params}`);
-      return await response.json();
-    },
-
-    convertToProduct: async (requestId) => {
-      const response = await fetch(`http://localhost:8080/api/v1/requests/${requestId}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: MY_INFO.id })
-      });
-      if (response.ok) return await response.json();
+      return await UdongAPI.getFeed(viewMode, stateFilters, userContext);
     },
   };
 
@@ -248,8 +140,8 @@ document.addEventListener("DOMContentLoaded", () => {
      [4] UI 렌더링 함수군 (HTML 생성)
      ========================================================================== */
   function createProductCardHTML(item, isVerifiedBuyer) {
-    const participants = parseInt(item.currentCount || item.participants || 0);
-    const maxParticipants = parseInt(item.targetCount || item.maxParticipants || 1);
+    const participants = parseInt(item.participants || 0);
+    const maxParticipants = parseInt(item.maxParticipants || 1);
     const percent = Math.round((participants / maxParticipants) * 100);
     const timeLeft = getTimeLeft(item.deadline);
     const isFullCapacity = item.status === "closed" || percent >= 100;
@@ -266,11 +158,8 @@ document.addEventListener("DOMContentLoaded", () => {
       colorClass = "gray";
     } else if (isDeadlinePassed) {
       progressText = `${participants}명 참여중 (목표 ${maxParticipants}명)`;
-    } else if (
-      percent >= 80 ||
-      maxParticipants - participants === 1 ||
-      isDeadlineUrgent(item.deadline)
-    ) {
+      // ★ BFF 아키텍처 적용: 프론트엔드의 계산식(isDeadlineUrgent 등)을 버리고 Worker의 isUrgent 값을 사용
+    } else if (item.isUrgent === true && item.status === "active") {
       progressText = `마감 직전! ${participants}명 참여중`;
       colorClass = "red";
       barClass = "urgent";
@@ -279,12 +168,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let badgesHtml = `<div class="badge-group">`;
     if (isFullCapacity)
       badgesHtml += `<span class="product-badge closed">모집완료</span>`;
-    else if (
-      !isDeadlinePassed &&
-      (percent >= 80 ||
-        maxParticipants - participants === 1 ||
-        isDeadlineUrgent(item.deadline))
-    ) {
+    // ★ BFF 아키텍처 적용: 마감임박 계산을 Worker에 위임
+    else if (item.isUrgent === true && item.status === "active") {
       badgesHtml += `<span class="product-badge urgent">⚡️ 마감임박</span>`;
     }
     if (item.tags && item.tags.includes("fresh"))
@@ -295,24 +180,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let zzimButtonHtml = "";
     if (state.role === "buyer" && !isFullCapacity && !isDeadlinePassed) {
-      if (
-        !(
-          isVerifiedBuyer &&
-          (item.myRole === "host" || item.myRole === "participant")
-        )
-      ) {
-        let zzimClass = "";
-        if (IS_LOGGED_IN) {
-          const wishlist = JSON.parse(
-            localStorage.getItem(WISHLIST_KEY) || "[]",
-          );
-          if (
-            wishlist.some(
-              (w) => w.timestamp === (item.createdAt || item.timestamp) && w.title === item.title,
-            )
-          )
-            zzimClass = " active";
-        }
+      // 내가 쓴 글이나 이미 참여한 글이 아닐 때만 찜 버튼 노출
+      if (!(item.myRole === "host" || item.myRole === "participant")) {
+        let zzimClass = item.isWished ? " active" : "";
         zzimButtonHtml = `<button type="button" class="btn-zzim${zzimClass}" title="찜하기">♥</button>`;
       }
     }
@@ -334,10 +204,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const isRoadState = localStorage.getItem(window.getAddrKey()) === "road";
-    const targetDong = item.location.includes(">")
-      ? item.location.split(">").pop().trim()
-      : item.location;
-    let displayAddr = isRoadState ? item.roadAddr || targetDong : targetDong;
+    let displayAddr = item.location;
+
+    // ★ [원상복구] 사용자가 고생해서 짜둔 완벽한 도로명 조합 로직 되살림
+    if (isRoadState) {
+      if (item.roadAddr) displayAddr = item.roadAddr;
+      else if (typeof window.getMatchedRoadName === "function") {
+        displayAddr = window.getMatchedRoadName(item.location);
+      }
+    } else if (item.location.includes(">")) {
+      displayAddr = item.location.split(">").pop().trim();
+    }
+
     let distStr = "";
     if (
       IS_LOGGED_IN &&
@@ -345,7 +223,9 @@ document.addEventListener("DOMContentLoaded", () => {
       item.distance !== null &&
       item.distance !== undefined
     ) {
-      distStr = ` (${item.distance >= 1000 ? (item.distance / 1000).toFixed(1) + "km" : item.distance + "m"})`;
+      const d = Math.round(item.distance); // ★ 소수점 제거 (반올림)
+      if (d === 0) distStr = "";
+      else distStr = ` (${d >= 1000 ? (d / 1000).toFixed(1) + "km" : d + "m"})`;
     }
 
     const cardClass = `product-card ${isFullCapacity ? "completed" : ""} ${isDeadlinePassed && !isFullCapacity ? "expired" : ""}`;
@@ -359,10 +239,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return `
       <article class="${cardClass}" data-id="${item.id}" data-type="product">
         <div class="product-image">
-          <img src="${item.image || PRODUCT_IMAGES[(item.id - 1) % PRODUCT_IMAGES.length]}" alt="${item.title}" onerror="this.src='../../images/main/beef.jpg'" />
+          <img src="${item.image}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x200?text=이미지없음'" />
           ${badgesHtml}
-          <div class="product-author">${item.authorNickname || item.author || "익명"}</div>
-          ${zzimButtonHtml} ${item.tags && item.tags.includes("event") ? `<div class="event-label">${item.eventText || "이벤트"}</div>` : ""}
+          <div class="product-author">${item.author || "익명"}</div>
+          ${zzimButtonHtml} ${item.eventText ? `<div class="event-label">${item.eventText}</div>` : ""}
         </div>
         <div class="product-info">
           <div class="card-header-row">
@@ -370,9 +250,9 @@ document.addEventListener("DOMContentLoaded", () => {
             ${roleBadgeHtml ? `<div class="badge-container">${roleBadgeHtml}</div>` : ""}
           </div>
           <p class="product-meta">
-            <strong style="color:#212529;">${item.shopName || item.authorNickname || "인증된 가게"}</strong> · <span class="addr-text">${displayAddr}</span> · ${getTimeAgo(item.createdAt || item.timestamp)}<span class="dist-text">${distStr}</span>
+            <strong style="color:#212529;">${item.shopName || "인증된 가게"}</strong> · <span class="addr-text">${displayAddr}</span> · ${getTimeAgo(item.timestamp)}<span class="dist-text">${distStr}</span>
           </p>
-          <p class="product-price">${parseInt(item.pricePerPerson || item.price || 0).toLocaleString()}원 ${displayTimeLeft ? `<span style="font-size:11px; color:#fa5252; font-weight:700; margin-left:6px;">⏰ ${displayTimeLeft}</span>` : ""}</p>
+          <p class="product-price">${parseInt(item.price).toLocaleString()}원 ${displayTimeLeft ? `<span style="font-size:11px; color:#fa5252; font-weight:700; margin-left:6px;">⏰ ${displayTimeLeft}</span>` : ""}</p>
           <div class="product-progress">
             <div class="progress-bar"><div class="progress-fill ${barClass}" style="width: ${percent}%"></div></div>
             <p class="progress-text ${colorClass}">${progressText}</p>
@@ -398,10 +278,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const isRoadState = localStorage.getItem(window.getAddrKey()) === "road";
-    const targetDong = item.location.includes(">")
-      ? item.location.split(">").pop().trim()
-      : item.location;
-    let displayAddr = isRoadState ? item.roadAddr || targetDong : targetDong;
+    let displayAddr = item.location;
+
+    if (isRoadState) {
+      if (item.roadAddr) displayAddr = item.roadAddr;
+      else if (typeof window.getMatchedRoadName === "function") {
+        displayAddr = window.getMatchedRoadName(item.location);
+      }
+    } else if (item.location.includes(">")) {
+      displayAddr = item.location.split(">").pop().trim();
+    }
+
     let distStr = "";
     if (
       IS_LOGGED_IN &&
@@ -409,87 +296,197 @@ document.addEventListener("DOMContentLoaded", () => {
       item.distance !== null &&
       item.distance !== undefined
     ) {
-      distStr = ` (${item.distance >= 1000 ? (item.distance / 1000).toFixed(1) + "km" : item.distance + "m"})`;
+      const d = Math.round(item.distance);
+      if (d === 0) distStr = "";
+      else distStr = ` (${d >= 1000 ? (d / 1000).toFixed(1) + "km" : d + "m"})`;
     }
 
-    const highlightedTitle = highlightText(item.title, state.keyword);
+    const timeLeft = getTimeLeft(item.deadline);
+    let displayTimeLeft = "";
+    let isCanceledOrExpired = false;
 
-    let actionBtnHTML = "";
+    if (item.status === "request_canceled") {
+      displayTimeLeft = `<span style="color:#fa5252; font-weight:800; margin-left:8px; font-size:12px;">요청 취소</span>`;
+      isCanceledOrExpired = true;
+    } else if (item.status === "expired" || timeLeft === "기한 만료") {
+      displayTimeLeft = `<span style="color:#fa5252; font-weight:800; margin-left:8px; font-size:12px;">⏰ 기한 만료</span>`;
+      isCanceledOrExpired = true;
+    } else if (timeLeft) {
+      displayTimeLeft = `<span style="color:#fa5252; font-weight:800; margin-left:8px; font-size:12px;">⏰ ${timeLeft}</span>`;
+    }
+
+    const hasActionBtn =
+      IS_LOGGED_IN && (state.role === "seller" || state.role === "admin");
+    const rightMargin = hasActionBtn ? "-90px" : "0";
+
+    const currentBidders = item.biddingSellers || 0;
+    let receivedBidsHTML = "";
     if (IS_LOGGED_IN) {
-      if (state.role === "seller") {
-        if (item.myBid === "true")
-          actionBtnHTML = `<button class="btn-bid proposed" disabled>제안중</button>`;
-        else
-          actionBtnHTML = `<button class="btn-bid" onclick="event.stopPropagation(); alert('입찰 제안 팝업이 열립니다.')">입찰하기</button>`;
-      } else if (state.role === "admin") {
-        actionBtnHTML = `<button class="btn-delete" title="게시글 삭제" onclick="window.adminDelete(event, this)">삭제</button>`;
-      } else if (
-        state.role === "buyer" &&
-        item.myRole === "host" &&
-        item.myBid === "true"
-      ) {
-        actionBtnHTML = `<button class="btn-accept-bid" onclick="event.stopPropagation(); window.acceptBid('${item.id}')">받은 제안</button>`;
+      if (state.role === "buyer") {
+        receivedBidsHTML = `<span style="flex-shrink:0; white-space:nowrap; font-size:12px; color:#495057; font-weight:700; background:#f8f9fa; padding:4px 8px; border-radius:4px; margin-right:${rightMargin};">제안 <span style="color:var(--primary)">${currentBidders}</span>/10</span>`;
+      } else if (state.role === "seller") {
+        receivedBidsHTML = `<span style="flex-shrink:0; white-space:nowrap; font-size:12px; color:#495057; font-weight:700; background:#f8f9fa; padding:4px 8px; border-radius:4px; margin-right:${rightMargin};">입찰 <span style="color:var(--seller-blue)">${currentBidders}</span>/10</span>`;
       }
     }
 
+    const highlightedTitle = highlightText(item.title, state.keyword);
+    let actionBtnHTML = "";
+
+    if (IS_LOGGED_IN) {
+      if (state.role === "seller") {
+        if (item.myBid === "true" || item.myBid === true) {
+          actionBtnHTML = `<button class="btn-bid proposed" disabled>제안 완료</button>`;
+        } else if (!isCanceledOrExpired) {
+          actionBtnHTML = `<button class="btn-bid" onclick="event.stopPropagation(); window.openBidModal('${item.id}', '${item.title.replace(/'/g, "\\'")}')">입찰하기</button>`;
+        }
+      } else if (state.role === "admin") {
+        actionBtnHTML = `<button class="btn-delete" title="게시글 삭제" onclick="event.stopPropagation(); window.adminDelete(event, this)">삭제</button>`;
+      }
+    }
+
+    const cardClass = `request-card ${isCanceledOrExpired ? "expired" : ""}`;
+    const contentOpacity = isCanceledOrExpired ? "opacity: 0.5;" : "";
+
     return `
-      <article class="request-card" data-id="${item.id}" data-type="request">
-        <div class="card-header-row">
-            <h3 class="request-title" style="margin-bottom:0;">${highlightedTitle}</h3>
-            ${roleBadgeHtml ? `<div class="badge-container">${roleBadgeHtml}</div>` : ""}
-        </div>
-        <p class="request-desc">${item.desc}</p>
-        <div class="request-footer">
-          <span class="request-author">${item.authorNickname || item.author || "익명"}</span>
-          <span class="request-budget">희망가: ${item.budget}</span>
-          <span class="request-meta">${displayAddr} · ${getTimeAgo(item.createdAt || item.timestamp)}${distStr}</span>
+      <article class="${cardClass}" data-id="${item.id}" data-type="request" style="cursor: pointer; position: relative;" onclick="location.href='../post/detail.html?id=${item.id}&type=request'">
+        <div style="${contentOpacity}">
+          <div class="card-header-row">
+              <h3 class="request-title" style="margin-bottom:0;">${highlightedTitle}</h3>
+              ${roleBadgeHtml ? `<div class="badge-container">${roleBadgeHtml}</div>` : ""}
+          </div>
+          <p class="request-desc">${item.desc}</p>
+          <div class="request-footer">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px;">
+              <div style="display:flex; align-items:center; min-width:0; overflow:hidden;">
+                <span class="request-author" style="margin-bottom:0; flex-shrink:0;">${item.author || "익명"}</span>
+                ${displayTimeLeft}
+              </div>
+              ${receivedBidsHTML}
+            </div>
+            <span class="request-budget">1인당 희망가: ${item.budget}</span>
+            <span class="request-meta">${displayAddr} · ${getTimeAgo(item.timestamp)}${distStr}</span>
+          </div>
         </div>
         ${actionBtnHTML}
       </article>
     `;
   }
 
-  window.adminDelete = (e, btnElement) => {
+  window.adminDelete = async (e, btnElement) => {
     e.stopPropagation();
     const reason = prompt("게시글 삭제 사유를 입력하세요.");
     if (reason && reason.trim()) {
       const card = btnElement.closest("article");
-      card.classList.add("admin-deleted");
-      card.insertAdjacentHTML(
-        "beforeend",
-        `
-        <div class="admin-deleted-overlay">
-            <span style="font-size:30px; margin-bottom:10px;">🛑</span>
-            <p style="color:#e03131; font-weight:800; margin-bottom:5px;">관리자에 의해 삭제된 게시물</p>
-            <p style="color:#868e96; font-size:12px;">사유: ${reason}</p>
-        </div>
-      `,
-      );
-      alert("삭제 처리 완료");
+      const postId = card.dataset.id;
+
+      // [대청소] 작성자(구매자 또는 판매자) 이름 추출 (서버에 알림 대상 정보로 전달 위함)
+      const authorNode =
+        card.querySelector(".product-author") ||
+        card.querySelector(".request-author");
+      const author = authorNode ? authorNode.innerText : "익명";
+
+      // [대청소] UdongAPI.deletePost에 작성자 닉네임(author)을 추가 파라미터로 넘깁니다.
+      const isSuccess = await UdongAPI.deletePost(postId, reason, author);
+
+      if (isSuccess) {
+        card.classList.add("admin-deleted");
+        card.insertAdjacentHTML(
+          "beforeend",
+          `<div class="admin-deleted-overlay">
+              <span style="font-size:30px; margin-bottom:10px;">🛑</span>
+              <p style="color:#e03131; font-weight:800; margin-bottom:5px;">관리자에 의해 삭제된 게시물</p>
+              <p style="color:#868e96; font-size:12px;">사유: ${reason}</p>
+          </div>`,
+        );
+
+        // [대청소 완료] udong_noti_... 로컬스토리지 저장 로직 완전 삭제 (서버에서 KV로 자동 동기화됨)
+        alert("삭제 처리 및 알림 발송 완료 (서버 동기화)");
+      } else {
+        alert("서버 오류로 인해 삭제에 실패했습니다.");
+      }
     }
   };
 
-  window.acceptBid = async (reqId) => {
-    if (
-      confirm(
-        "도착한 제안 목록 팝업이 열립니다.\n\n임시 테스트용: 첫 번째 제안을 수락하시겠습니까?",
-      )
-    ) {
-      await MockAPI.convertToProduct(reqId);
-      alert("매칭이 시작되었습니다. 모집 중인 공구 탭에서 확인하세요.");
-      state.viewMode = "products";
-      resetFilters("tab");
-      renderRevised();
+  // =========================================================================
+  // [추가] 관리자 제재 실행 함수 (API 호출용)
+  // =========================================================================
+  window.executeSanction = async () => {
+    const nickname = document.getElementById("adminBanUser")?.value;
+    const reason = document.getElementById("adminBanReason")?.value;
+    const level = document.getElementById("adminBanLevel")?.value;
+
+    if (!nickname || !reason || !level) {
+      alert("제재 대상 닉네임, 사유, 단계를 모두 선택해주세요.");
+      return;
+    }
+
+    const success = await UdongAPI.sanctionUser(nickname, reason, level);
+
+    if (success) {
+      // [대청소] 로컬 알림 생성 로직 완전 삭제 (서버에서 자동 처리됨)
+
+      // 1. 입력창 초기화
+      document.getElementById("adminBanUser").value = "";
+      document.getElementById("adminBanReason").value = "";
+      document.getElementById("adminBanLevel").value = "";
+
+      // 3. 만약 제재 대상이 현재 로그인한 본인이라면 닉네임, 드롭박스 즉시 초기화
+      if (MY_INFO.nickname === nickname) {
+        localStorage.removeItem("udong_user_info");
+        const userMenu = document.getElementById("userMenuContainer");
+        if (userMenu) {
+          userMenu.querySelector(".user-nickname").innerText = "제재된 사용자";
+          document
+            .getElementById("userMenuDropdown")
+            ?.classList.remove("active");
+        }
+      }
+
+      alert(`${nickname}님에 대한 제재 처리가 완료되었습니다.`);
+    } else {
+      alert("제재 처리 중 서버 오류가 발생했습니다.");
     }
   };
+
+  // [추가] 내 주변 네모 박스(Bounding Box) 계산 함수
+  function getSearchBoundingBox(lat, lon, regionName) {
+    if (!lat || !lon || !regionName) return null;
+    // 도심(서울, 경기, 광역시)은 3km, 지방은 5km로 설정
+    const isUrban = [
+      "서울",
+      "경기",
+      "부산",
+      "인천",
+      "대구",
+      "대전",
+      "광주",
+    ].some((city) => regionName.includes(city));
+    const radiusKm = isUrban ? 3 : 5;
+
+    const latToKm = 111.32;
+    const lonToKm = (40075 * Math.cos((lat * Math.PI) / 180)) / 360;
+
+    return {
+      minLat: lat - radiusKm / latToKm,
+      maxLat: lat + radiusKm / latToKm,
+      minLon: lon - radiusKm / lonToKm,
+      maxLon: lon + radiusKm / lonToKm,
+      radiusLimit: radiusKm * 1000,
+    };
+  }
 
   /* ==========================================================================
      [5] 메인 비동기 렌더러 (renderRevised)
      ========================================================================== */
-  async function renderRevised(isDragAction = false, preventScroll = false) {
+  // [수정] isLoadMore 파라미터 추가
+  async function renderRevised(
+    isDragAction = false,
+    preventScroll = false,
+    isLoadMore = false,
+  ) {
     if (state.keyword.length > 0) {
       document.body.classList.add("search-mode");
-      if (!isDragAction && !preventScroll)
+      if (!isDragAction && !preventScroll && !isLoadMore)
         window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       document.body.classList.remove("search-mode");
@@ -536,32 +533,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const isRoadState = localStorage.getItem(window.getAddrKey()) === "road";
     let displayTitleLoc = "";
     if (state.location) {
-      if (state.role === "buyer") {
-        const current = JSON.parse(
-          localStorage.getItem("udong_buyer_locations") || "[]",
-        ).find((l) => l.selected);
-        if (current)
+      const locs = await UdongAPI.getUserLocations(state.role);
+      const current = locs.find((l) => l.selected);
+
+      if (current) {
+        if (state.role === "buyer") {
           displayTitleLoc =
             isRoadState && current.roadName
               ? current.roadName
               : current.dong || current.name.split(">").pop().trim();
-        else displayTitleLoc = state.location.split(">").pop().trim();
-      } else {
-        const key =
-          state.role === "seller"
-            ? "udong_seller_location"
-            : "udong_admin_location";
-        const current = (JSON.parse(localStorage.getItem(key)) || []).find(
-          (l) => l.selected,
-        );
-        const fullPath = current ? current.name : state.location;
-        if (isRoadState && typeof window.getMatchedRoadName === "function") {
-          displayTitleLoc =
-            localStorage.getItem("udong_selected_road_name") ||
-            window.getMatchedRoadName(fullPath);
         } else {
-          displayTitleLoc = fullPath.split(">").pop().trim();
+          const fullPath = current.name;
+          if (isRoadState && typeof window.getMatchedRoadName === "function") {
+            displayTitleLoc =
+              localStorage.getItem("udong_selected_road_name") ||
+              window.getMatchedRoadName(fullPath);
+          } else {
+            displayTitleLoc = fullPath.split(">").pop().trim();
+          }
         }
+      } else {
+        displayTitleLoc = state.location.split(">").pop().trim();
       }
     }
 
@@ -582,8 +574,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (requestWidget)
       requestWidget.style.display = isRequestMode ? "none" : "flex";
 
-    productGrid.innerHTML =
-      '<div style="grid-column: 1/-1; text-align: center; padding: 60px; color:#868e96; font-weight: bold;">데이터를 불러오는 중입니다... 🚚</div>';
+    // [수정] 무한 스크롤(더보기)이 아닐 때만 목록 초기화
+    if (!isLoadMore) {
+      chunkPage = 1;
+      hasMoreChunks = true;
+      productGrid.innerHTML =
+        '<div style="grid-column: 1/-1; text-align: center; padding: 60px; color:#868e96; font-weight: bold;">데이터를 불러오는 중입니다... 🚚</div>';
+    } else {
+      isFetchingNextChunk = true;
+      productGrid.insertAdjacentHTML(
+        "beforeend",
+        '<div id="chunkLoading" style="grid-column: 1/-1; text-align: center; padding: 20px; color:#868e96;">다음 데이터를 불러오는 중...</div>',
+      );
+    }
 
     const currentFilters = {
       category: state.category,
@@ -593,34 +596,64 @@ document.addEventListener("DOMContentLoaded", () => {
       priceMin: state.priceMin,
       priceMax: state.priceMax,
       sort: state.sort,
+      page: chunkPage, // [추가] 백엔드에 100개 단위 청크 요청용 페이지 번호
+      limit: 100, // [추가] 청크 사이즈
     };
+
+    const context = await UdongAPI.getUserContext(state.role);
+    const isVerifiedBuyer = context.isVerified;
+
+    let boundingBox = null;
+    if (context.lat && context.lon && context.location) {
+      const upperRegion = window.getUpperRegion
+        ? window.getUpperRegion(context.location)
+        : context.location;
+      boundingBox = getSearchBoundingBox(context.lat, context.lon, upperRegion);
+    }
+
     const userContext = {
       role: state.role,
       location: state.location,
-      lat: state.lat,
-      lon: state.lon,
+      lat: context.lat,
+      lon: context.lon,
+      ...(boundingBox || {}),
     };
-    let isVerifiedBuyer = false;
-    if (state.role === "buyer") {
-      const locs = JSON.parse(
-        localStorage.getItem("udong_buyer_locations") || "[]",
-      );
-      isVerifiedBuyer = locs.some(
-        (l) => l.selected && l.verified && !l.expired,
-      );
-    } else {
-      isVerifiedBuyer = true;
-    }
 
     try {
-      const responseData = await MockAPI.fetchFeed(
+      const responseData = await FeedAPI.fetchFeed(
         state.viewMode,
         currentFilters,
         userContext,
       );
-      productGrid.innerHTML = "";
+      const { list, counts } = responseData;
 
-      if (responseData.length === 0) {
+      if (
+        state.keyword &&
+        counts &&
+        state.viewMode === "products" &&
+        counts.products === 0 &&
+        counts.requests > 0
+      ) {
+        state.viewMode = "requests";
+        return renderRevised(isDragAction, preventScroll);
+      }
+
+      // [추가] 더보기 로딩 표시 제거
+      const loadingIndicator = document.getElementById("chunkLoading");
+      if (loadingIndicator) loadingIndicator.remove();
+
+      // [추가] 받아온 청크에 더 이상 데이터가 없으면 무한 스크롤 중단
+      if (list.length === 0 && isLoadMore) {
+        hasMoreChunks = false;
+        isFetchingNextChunk = false;
+        return;
+      }
+
+      if (!isLoadMore) {
+        productGrid.innerHTML = "";
+      }
+
+      if (list.length === 0 && !isLoadMore) {
         showEmptyState(
           state.keyword
             ? `'${state.keyword}'의 검색 결과가 없습니다.`
@@ -628,156 +661,208 @@ document.addEventListener("DOMContentLoaded", () => {
           true,
         );
       } else {
-        const htmlChunks = responseData.map((item) =>
+        const htmlChunks = list.map((item) =>
           isRequestMode
             ? createRequestCardHTML(item, isVerifiedBuyer)
             : createProductCardHTML(item, isVerifiedBuyer),
         );
-        productGrid.innerHTML = htmlChunks.join("");
+
+        // [수정] 무한 스크롤 시 기존 목록 아래에 덧붙이기
+        if (isLoadMore) {
+          productGrid.insertAdjacentHTML("beforeend", htmlChunks.join(""));
+        } else {
+          productGrid.innerHTML = htmlChunks.join("");
+        }
       }
+
+      isFetchingNextChunk = false; // [추가] 데이터 로드 완료 상태 해제
     } catch (e) {
-      productGrid.innerHTML =
-        '<div style="grid-column: 1/-1; text-align: center; padding: 60px; color:#e03131;">서버와 통신할 수 없습니다.</div>';
+      if (!isLoadMore) {
+        productGrid.innerHTML =
+          '<div style="grid-column: 1/-1; text-align: center; padding: 60px; color:#e03131;">서버와 통신할 수 없습니다.</div>';
+      }
+      isFetchingNextChunk = false;
     }
 
-    updateSideWidget();
+    await updateSideWidget();
   }
 
   /* ==========================================================================
-     [6] 사이드바 위젯 로직
+     [6] 사이드바 위젯 로직 (리팩토링 버전)
      ========================================================================== */
-  function updateSideWidget() {
+  async function updateSideWidget() {
     const widgetContainer = document.querySelector(
       ".sidebar-right .widget.highlighted",
     );
     if (!widgetContainer) return;
 
     if (!IS_LOGGED_IN) {
-      widgetContainer.innerHTML = `
-        <h3 class="widget-title">📦 배송비 0원 챌린지!</h3>
-        <div class="login-promo-box">
-            <div class="promo-icon">🚚</div>
-            <p class="promo-title">이웃과 함께 나누면<br>배송비가 0원!</p>
-            <p class="promo-desc">지금 바로 로그인하고<br>우리 동네 공구에 참여해보세요.</p>
-            <button class="btn-join" onclick="location.href='../Login.html'">로그인하기</button>
-        </div>`;
-    } else if (state.role === "admin") {
-      widgetContainer.innerHTML = `
-        <h3 class="widget-title">🛑 회원 제재 관리</h3>
-        <div class="admin-ban-panel" style="margin-top:10px;">
-          <input type="text" id="adminBanUser" class="admin-input" placeholder="닉네임 입력" style="margin-bottom:5px;">
-          <select id="adminBanReason" class="admin-input" style="margin-bottom:5px;">
-            <option value="" disabled selected>제재 사유 선택</option><option value="abuse">욕설 및 비방 (Abuse)</option><option value="scam">거래 사기 (Scam)</option><option value="spam">도배 및 광고 (Spam)</option><option value="noshow">거래 파기/노쇼 (No-show)</option>
-          </select>
-          <select id="adminBanLevel" class="admin-input" style="margin-bottom:10px;">
-            <option value="" disabled selected>제재 단계 선택</option><option value="warning">1차 경고 (Warning)</option><option value="suspend_7d">7일 이용 정지 (7d Suspend)</option><option value="suspend_30d">30일 이용 정지 (30d Suspend)</option><option value="ban_permanent">영구 정지 (Permanent Ban)</option>
-          </select>
-          <button class="btn-ban" onclick="alert('제재 처리 완료');" style="width:100%; background:#e03131; color:white; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; border:none;">제재 실행</button>
-        </div>`;
-    } else if (state.role === "seller") {
-      let inProgressCount = MOCK_DB.requests.filter(
-        (r) => r.myBid === "true",
-      ).length;
-      let successCount = 0,
-        totalSales = 0;
-      MOCK_DB.products.forEach((p) => {
-        if (p.myBid === "true" || p.author === "매칭완료") {
-          successCount++;
-          if (
-            p.status === "closed" ||
-            parseInt(p.participants) >= parseInt(p.maxParticipants)
-          ) {
-            totalSales += parseInt(p.price || "0");
-          }
-        }
-      });
-      const settlementAmount = Math.floor(totalSales * 0.95);
-      widgetContainer.innerHTML = `
-        <h3 class="widget-title">📊 판매자 현황</h3>
-        <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
-            <div style="display:flex; justify-content:space-between; font-size:14px;"><span>진행중인 입찰</span><span style="font-weight:700; color:#4c6ef5;">${inProgressCount}건</span></div>
-            <div style="display:flex; justify-content:space-between; font-size:14px;"><span>이번 달 낙찰</span><span style="font-weight:700;">${successCount}건</span></div>
-            <hr style="border:none; border-top:1px solid #eee; margin:5px 0;">
-            <div><p class="savings-label">이번 달 정산 예정금</p><p class="savings-amount" style="font-size:22px;">${settlementAmount > 0 ? settlementAmount.toLocaleString() + "원" : "0원"}</p></div>
-        </div>
-        <button class="widget-button" onclick="location.href='/html/mypage/partner_settlement.html'">자세히 보기</button>`;
-    } else {
-      widgetContainer.innerHTML = `<h3 class="widget-title"> 나의 참여 현황</h3><div class="participation-item"></div><hr style="border: none; border-top: 1px solid #f1f3f5; margin: 16px 0;" /><div><p class="savings-label">이번 달 아낀 배송비</p><p class="savings-amount">0원 💰</p></div><button class="widget-button" onclick="location.href='/html/mypage/buyer_delivery.html'">자세히 보기</button>`;
-      updateBuyerWidget(widgetContainer);
-    }
-    updateRequestWidget();
-  }
-
-  function updateBuyerWidget(container) {
-    const partItem = container.querySelector(".participation-item");
-    const detailBtn = container.querySelector(".widget-button");
-    const savingsEl = container.querySelector(".savings-amount");
-    const verifiedLocs = (
-      JSON.parse(localStorage.getItem("udong_buyer_locations")) || []
-    ).filter((l) => l.verified && !l.expired);
-
-    if (verifiedLocs.length === 0) {
-      partItem.innerHTML = `<div class="participation-info" style="width:100%; text-align:center; color:#868e96; padding:10px 0;">동네 인증 후<br>확인할 수 있습니다.</div>`;
-      detailBtn.disabled = true;
+      widgetContainer.innerHTML = `<h3 class="widget-title">📦 배송비 0원 챌린지!</h3><div class="login-promo-box"><div class="promo-icon">🚚</div><p class="promo-title">이웃과 함께 나누면<br>배송비가 0원!</p><p class="promo-desc">지금 바로 로그인하고<br>우리 동네 공구에 참여해보세요.</p><button class="btn-join" onclick="location.href='/pages/login/login.html'">로그인하기</button></div>`;
+      updateRequestWidget();
       return;
     }
 
-    const myProducts = MOCK_DB.products.filter(
-      (p) => p.myRole === "host" || p.myRole === "participant",
-    );
-    const totalSavings = myProducts
-      .filter((p) => p.status === "closed")
-      .reduce((sum, p) => sum + parseInt(p.shippingCost || 3000), 0);
-    if (savingsEl)
-      savingsEl.innerText = `${totalSavings.toLocaleString()}원 💰`;
+    try {
+      const context = await UdongAPI.getUserContext(state.role);
+      if (state.role === "buyer" && !context.isVerified) {
+        widgetContainer.innerHTML = `<h3 class="widget-title">나의 참여 현황</h3><div class="login-promo-box"><div class="promo-icon">📍</div><p class="promo-title" style="margin-bottom:8px;">동네 인증이 필요합니다</p><p class="promo-desc">인증을 완료해야 나의 참여 현황과<br>동네 이웃들의 공구를 볼 수 있어요.</p><button class="btn-join" onclick="window.startGpsAuth(-1)">동네 인증하기</button></div>`;
+        updateRequestWidget();
+        return;
+      }
 
-    const activeProducts = myProducts
-      .filter((p) => p.status === "active")
-      .sort((a, b) => parseInt(b.timestamp) - parseInt(a.timestamp));
-    if (activeProducts.length > 0) {
-      const target = activeProducts[0];
-      partItem.style.cursor = "pointer";
-      partItem.onclick = () => (location.href = "../post/post-detail.html");
-      partItem.innerHTML = `<div class="participation-icon" style="overflow:hidden; border:1px solid #eee; padding:0;"><img src="${target.image}" style="width:100%; height:100%; object-fit:cover;"></div><div class="participation-info"><p class="participation-title" style="font-weight:700; font-size:15px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">${target.title}</p><p class="participation-status" style="font-size:12px; color:#ff6f0f; font-weight:700;">매칭 진행중 (${target.participants}/${target.maxParticipants}명)</p></div>`;
-      detailBtn.disabled = false;
-    } else {
-      partItem.innerHTML = `<div class="participation-icon" style="background:#f1f3f5; font-size:20px;">😴</div><div class="participation-info"><p class="participation-title" style="color:#495057;">참여 중인 공구가 없습니다</p></div>`;
+      const summary = await UdongAPI.getUserSummary(state.role);
+      if (!summary) throw new Error("요약 정보 없음");
+
+      if (state.role === "admin") {
+        widgetContainer.innerHTML = `<h3 class="widget-title">🛑 회원 제재 관리</h3><div class="admin-ban-panel" style="margin-top:10px;"><input type="text" id="adminBanUser" class="admin-input" placeholder="닉네임 입력" style="margin-bottom:5px;"><select id="adminBanReason" class="admin-input" style="margin-bottom:5px;"><option value="" disabled selected>제재 사유 선택</option><option value="abuse">욕설 및 비방</option><option value="scam">거래 사기</option><option value="spam">도배 및 광고</option><option value="noshow">거래 파기/노쇼</option></select><select id="adminBanLevel" class="admin-input" style="margin-bottom:10px;"><option value="" disabled selected>제재 단계 선택</option><option value="warning">1차 경고</option><option value="suspend_7d">7일 정지</option><option value="suspend_30d">30일 정지</option><option value="ban_permanent">영구 정지</option></select><button class="btn-ban" onclick="window.executeSanction()" style="width:100%; background:#e03131; color:white; padding:10px; border-radius:6px; font-weight:bold; border:none; cursor:pointer;">제재 실행</button></div>`;
+      } else if (state.role === "seller") {
+        widgetContainer.innerHTML = `<h3 class="widget-title">📊 판매자 현황</h3><div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;"><div style="display:flex; justify-content:space-between; font-size:14px;"><span>진행중인 입찰</span><span style="font-weight:700; color:#4c6ef5;">${summary.inProgressCount}건</span></div><div style="display:flex; justify-content:space-between; font-size:14px;"><span>이번 달 낙찰</span><span style="font-weight:700;">${summary.successCount}건</span></div><hr style="border:none; border-top:1px solid #eee; margin:5px 0;"><div><p class="savings-label">이번 달 정산 예정금</p><p class="savings-amount" style="font-size:22px;">${summary.settlementAmount.toLocaleString()}원</p></div></div><button class="widget-button" onclick="location.href='/pages/mypage/partner_settlement.html'">자세히 보기</button>`;
+      } else {
+        widgetContainer.innerHTML = `<h3 class="widget-title">나의 참여 현황</h3><div class="participation-item" id="activeParticipationItem"></div><hr style="border: none; border-top: 1px solid #f1f3f5; margin: 16px 0;" /><div><p class="savings-label">이번 달 아낀 배송비</p><p class="savings-amount">${summary.totalSavings.toLocaleString()}원 💰</p></div><button class="widget-button" id="btnGoMyDelivery">자세히 보기</button>`;
+
+        const partItem = document.getElementById("activeParticipationItem");
+        const detailBtn = document.getElementById("btnGoMyDelivery");
+        const item = summary.activeItem;
+
+        if (item) {
+          const isMatched =
+            item.status === "closed" ||
+            item.status === "completed" ||
+            item.status === "matched" ||
+            parseInt(item.participants || 0) >=
+              parseInt(item.maxParticipants || 1);
+
+          const countInfo = item.participants
+            ? ` (${item.participants}/${item.maxParticipants}명)`
+            : "";
+
+          partItem.style.cursor = "pointer";
+
+          // ★ [버그 해결 및 기능 보완] 상세페이지 진입 전 프론트엔드(Edge)에서 거리 검증 및 차단
+          partItem.onclick = async () => {
+            try {
+              const targetDate = parseCustomDate(item.deadline);
+              const isExpired =
+                isMatched ||
+                item.status === "expired" ||
+                (targetDate && targetDate - new Date() <= 0);
+
+              if (state.role === "buyer" && !isExpired) {
+                const myLocs = await UdongAPI.getUserLocations("buyer");
+                const verifiedLocs = myLocs.filter(
+                  (l) => l.verified && !l.expired,
+                );
+
+                if (verifiedLocs.length > 0) {
+                  let currentMatched = false;
+                  let alternativeMatchedLoc = null;
+
+                  for (const loc of verifiedLocs) {
+                    const upper = window.getUpperRegion
+                      ? window.getUpperRegion(loc.name)
+                      : loc.name;
+                    const isUrban = [
+                      "서울",
+                      "경기",
+                      "부산",
+                      "인천",
+                      "대구",
+                      "대전",
+                      "광주",
+                    ].some((city) => upper.includes(city));
+                    const radiusLimit = isUrban ? 3000 : 5000;
+
+                    const dist = window.udongCalculateDistance(
+                      loc.lat,
+                      loc.lon,
+                      parseFloat(item.lat),
+                      parseFloat(item.lon),
+                    );
+
+                    if (dist <= radiusLimit) {
+                      if (loc.selected) {
+                        currentMatched = true;
+                        break;
+                      }
+                      if (!alternativeMatchedLoc) alternativeMatchedLoc = loc;
+                    }
+                  }
+
+                  // 나의 참여 현황의 경우, 본인이 참여 중인 게시글이므로 차단 알림은 띄우지 않되
+                  // 다른 인증 지역 반경에 포함된다면 해당 지역으로 자동 스위칭
+                  if (!currentMatched && alternativeMatchedLoc) {
+                    myLocs.forEach(
+                      (l) =>
+                        (l.selected = l.name === alternativeMatchedLoc.name),
+                    );
+                    await UdongAPI.saveUserLocations("buyer", myLocs);
+                    window.dispatchEvent(new Event("locationChange"));
+                  }
+                }
+              }
+
+              // [핵심] 가짜 DB용 로컬 스토리지 저장 로직 완전 삭제 및 파라미터 기반 라우팅 적용
+              const typeStr = String(item.id).startsWith("req")
+                ? "request"
+                : "post";
+              location.href = `../post/detail.html?id=${item.id}&type=${typeStr}`;
+            } catch (e) {
+              console.error("나의 참여 현황 클릭 에러:", e);
+            }
+          };
+
+          partItem.innerHTML = `
+            <div class="participation-icon" style="overflow:hidden; border:1px solid #eee; padding:0;">
+              <img src="${item.image || "https://via.placeholder.com/100"}" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+            <div class="participation-info">
+              <p class="participation-title" style="font-weight:700; font-size:15px; margin-bottom:2px;">${item.title}</p>
+              <p class="participation-status" style="font-size:12px; color:#ff6f0f; font-weight:700;">${isMatched ? "매칭 완료" : "매칭 진행중"}${countInfo}</p>
+            </div>`;
+          detailBtn.disabled = false;
+          detailBtn.onclick = () => {
+            location.href = "/pages/mypage/buyer_delivery.html";
+          };
+        } else {
+          detailBtn.disabled = true;
+        }
+      }
+      updateRequestWidget();
+    } catch (error) {
+      console.error("위젯 데이터 로드 실패:", error);
+      let titleText = "나의 참여 현황";
+      if (state.role === "seller") titleText = "📊 판매자 현황";
+      else if (state.role === "admin") titleText = "🛑 회원 제재 관리";
+      widgetContainer.innerHTML = `<h3 class="widget-title">${titleText}</h3><div style="padding: 30px 10px; text-align: center; color: #868e96; font-size: 13px;">데이터를 불러오지 못했습니다.<br>잠시 후 새로고침 해주세요.</div>`;
     }
   }
 
-  function updateRequestWidget() {
+  async function updateRequestWidget() {
     const widget = document.getElementById("requestWidget");
     if (!widget) return;
     const listContainer = widget.querySelector(".request-list");
-    const title = widget.querySelector(".widget-title");
-    const writeBtn = widget.querySelector(".request-submit-btn");
 
-    if (writeBtn)
-      writeBtn.style.display =
-        state.role === "seller" || state.role === "admin" ? "none" : "block";
-    if (title)
-      title.innerText =
-        state.role === "seller" || state.role === "admin"
-          ? "📢 구매자들의 공구 요청"
-          : "📢 이웃들의 공구 요청";
-    if (!listContainer) return;
+    try {
+      const reqs = await UdongAPI.getSidebarRequests();
 
-    let reqs = [...MOCK_DB.requests]
-      .sort((a, b) => parseInt(b.timestamp) - parseInt(a.timestamp))
-      .slice(0, 5);
-    listContainer.innerHTML = "";
-    if (reqs.length === 0) {
-      listContainer.innerHTML = `<li style="padding:15px; text-align:center; color:#868e96; font-size:13px;">등록된 요청이 없습니다.</li>`;
-      return;
+      listContainer.innerHTML = "";
+      if (reqs.length === 0) {
+        listContainer.innerHTML = `<li style="padding:15px; text-align:center; color:#868e96; font-size:13px;">등록된 요청이 없습니다.</li>`;
+        return;
+      }
+
+      reqs.forEach((req) => {
+        let time = getTimeAgo(req.timestamp);
+        // [핵심] 로컬 스토리지 찌꺼기 없이 깔끔하게 URL 파라미터만 넘김
+        listContainer.insertAdjacentHTML(
+          "beforeend",
+          `<li class="request-item" onclick="window.location.href='../post/detail.html?id=${req.id}&type=request'"><span class="request-text" style="font-size:13px;">${req.title}</span><span class="request-time">${time}</span></li>`,
+        );
+      });
+    } catch (error) {
+      console.error("공구 요청 목록 로드 실패:", error);
+      listContainer.innerHTML = `<li style="padding:15px; text-align:center; color:#fa5252; font-size:13px;">목록을 불러오는 중 오류가 발생했습니다.</li>`;
     }
-
-    reqs.forEach((req) => {
-      let time = getTimeAgo(req.timestamp);
-      listContainer.insertAdjacentHTML(
-        "beforeend",
-        `<li class="request-item" onclick="window.location.href='../post/request-detail.html'"><span class="request-text" style="font-size:13px;">${req.title}</span><span class="request-time">${time}</span></li>`,
-      );
-    });
   }
 
   /* ==========================================================================
@@ -792,20 +877,19 @@ document.addEventListener("DOMContentLoaded", () => {
     document
       .getElementById("searchHistoryLayer")
       ?.style.setProperty("display", "none");
-    resetFilters("search");
 
-    const prodCount = MOCK_DB.products.filter((p) =>
-      p.title.toLowerCase().includes(state.keyword),
-    ).length;
-    const reqCount = MOCK_DB.requests.filter((r) =>
-      r.title.toLowerCase().includes(state.keyword),
-    ).length;
-    if (state.viewMode === "products" && prodCount === 0 && reqCount > 0)
-      state.viewMode = "requests";
-    else if (state.viewMode === "requests" && reqCount === 0 && prodCount > 0)
-      state.viewMode = "products";
+    renderRevised(false, true); // 기본 스크롤 동작 방지
 
-    renderRevised(false, false);
+    // 배너를 완전히 지나쳐 상단에 딱 붙도록 스크롤
+    setTimeout(() => {
+      const contentArea = document.querySelector(".main-content");
+      if (contentArea) {
+        window.scrollTo({
+          top: contentArea.offsetTop - 80,
+          behavior: "smooth",
+        });
+      }
+    }, 150);
   }
 
   function resetFilters(mode = "full") {
@@ -846,102 +930,203 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  function updateLocation() {
-    let myLat = null,
-      myLon = null;
-    if (IS_LOGGED_IN) {
-      if (state.role === "seller" || state.role === "admin") {
-        const key =
-          state.role === "seller"
-            ? "udong_seller_location"
-            : "udong_admin_location";
-        const target = (JSON.parse(localStorage.getItem(key)) || []).find(
-          (l) => l.selected,
-        );
-        if (target && target.name !== "전체 지역") {
-          state.location = target.name.split(">").pop().trim();
-          myLat = target.lat;
-          myLon = target.lon;
-        } else state.location = null;
-      } else {
-        const target = (
-          JSON.parse(localStorage.getItem("udong_buyer_locations")) || []
-        ).find((l) => l.selected);
-        if (target && target.verified && !target.expired) {
-          state.location = target.name;
-          myLat = target.lat;
-          myLon = target.lon;
-        } else state.location = null;
+  async function updateLocation() {
+    // [핵심 수정] 이제 getUserContext가 서버(KV) 동기화를 완벽하게 보장합니다.
+    const context = await UdongAPI.getUserContext(state.role);
+
+    state.location = context.location;
+    state.lat = context.lat;
+    state.lon = context.lon;
+    const isVerifiedBuyer = context.isVerified;
+
+    const reqSubmitBtn = document.querySelector(".request-submit-btn");
+    if (reqSubmitBtn) {
+      const checkLoggedIn =
+        localStorage.getItem("udong_is_logged_in") === "true";
+
+      // 🚀 [추가] 로그인하지 않았을 경우 모든 위치 컨텍스트 초기화
+      if (!checkLoggedIn) {
+        state.location = null;
+        state.lat = null;
+        state.lon = null;
+        if (feedTitle) feedTitle.innerText = "모집 중인 공구";
+        renderRevised();
+        return;
       }
-    } else {
-      state.location = null;
+
+      if (state.role === "seller" || state.role === "admin") {
+        // 1. 판매자와 관리자는 버튼 숨김
+        reqSubmitBtn.style.display = "none";
+      } else if (!checkLoggedIn) {
+        // 2. 비로그인 상태 (회색 처리 + 로그인 유도)
+        reqSubmitBtn.style.display = "block";
+        reqSubmitBtn.textContent = "로그인 필요";
+        reqSubmitBtn.style.backgroundColor = "#adb5bd";
+        reqSubmitBtn.style.color = "white";
+        reqSubmitBtn.style.cursor = "not-allowed";
+        reqSubmitBtn.disabled = false;
+        reqSubmitBtn.onclick = (e) => {
+          e.preventDefault();
+          if (confirm("로그인이 필요한 서비스입니다.\n로그인하시겠습니까?")) {
+            location.href = "/pages/login/login.html";
+          }
+        };
+      } else if (!isVerifiedBuyer) {
+        // 3. 로그인한 구매자지만 동네 인증이 만료/없음 상태 (서버 검증 완료)
+        reqSubmitBtn.style.display = "block";
+        reqSubmitBtn.textContent = "동네 인증 필요";
+        reqSubmitBtn.style.backgroundColor = "#adb5bd";
+        reqSubmitBtn.style.color = "white";
+        reqSubmitBtn.style.cursor = "not-allowed";
+        reqSubmitBtn.disabled = false;
+        reqSubmitBtn.onclick = (e) => {
+          e.preventDefault();
+          alert("동네 인증이 완료된 사용자만 요청글을 작성할 수 있습니다.");
+        };
+      } else {
+        // 4. 모든 조건을 만족한 상태 (버튼 활성화)
+        reqSubmitBtn.style.display = "block";
+        reqSubmitBtn.textContent = "나도 요청글 쓰기";
+        reqSubmitBtn.style.backgroundColor = "var(--primary)";
+        reqSubmitBtn.style.color = "white";
+        reqSubmitBtn.style.cursor = "pointer";
+        reqSubmitBtn.disabled = false;
+        reqSubmitBtn.onclick = (e) => {
+          e.preventDefault();
+          if (typeof window.openRequestModal === "function")
+            window.openRequestModal();
+        };
+      }
     }
 
-    state.lat = myLat;
-    state.lon = myLon;
-    const writeBtn = document.querySelector(".request-submit-btn");
-    if (writeBtn) {
-      if (IS_LOGGED_IN && state.role === "buyer" && !state.location) {
-        writeBtn.disabled = true;
-        writeBtn.innerText = "동네 인증 필요";
-      } else {
-        writeBtn.disabled = false;
-        writeBtn.innerText = "나도 요청글 쓰기";
-      }
-    }
     resetFilters("full");
     renderRevised();
     renderRecentWidget();
   }
 
-  /* ==========================================================================
-     [8] 이벤트 리스너 및 잡다한 헬퍼
-     ========================================================================== */
-  function getRecentItemsKey() {
-    if (!IS_LOGGED_IN) return "udong_recent_items_guest";
-    if (state.role === "admin") return "udong_recent_items_admin";
-    if (state.role === "seller") return "udong_recent_items_seller";
-    return "udong_recent_items_buyer";
-  }
-
-  function saveRecentItem(itemData) {
+  async function saveRecentItem(itemData) {
     if (!IS_LOGGED_IN) return;
-    const key = getRecentItemsKey();
-    let items = JSON.parse(localStorage.getItem(key) || "[]").filter(
-      (i) => i.id !== itemData.id,
-    );
-    items.unshift(itemData);
-    if (items.length > 5) items.pop();
-    localStorage.setItem(key, JSON.stringify(items));
+    const role = state.role || "buyer";
+    await UdongAPI.saveRecentItem(role, itemData);
   }
 
-  function renderRecentWidget() {
+  async function renderRecentWidget() {
     if (!recentItemsList) return;
+
     if (!IS_LOGGED_IN) {
-      recentItemsList.innerHTML = `<div class="recent-item" style="cursor: default; width:100%; border:none; background:none;"><div class="recent-placeholder" style="width:100%; text-align:center; font-size:12px; color:#868e96; padding:10px 0; line-height:1.4;">로그인 후<br>최근 본 공구가<br>표시됩니다.</div></div>`;
-      if (btnClearRecent) btnClearRecent.style.display = "none";
+      recentItemsList.innerHTML = `<div class="recent-placeholder" style="color:#adb5bd; line-height:1.4;">로그인 후<br>확인할 수 있습니다</div>`;
+      if (btnClearRecent) btnClearRecent.disabled = true;
       return;
     }
-    if (btnClearRecent) btnClearRecent.style.display = "inline-block";
-    let items = JSON.parse(localStorage.getItem(getRecentItemsKey()) || "[]");
+
+    const items = await UdongAPI.getRecentItems(state.role);
     recentItemsList.innerHTML = "";
-    if (items.length === 0) {
-      recentItemsList.innerHTML = `<div class="recent-item" style="cursor: default; width:100%; border:none; background:none;"><div class="recent-placeholder" style="width:100%; text-align:center; font-size:13px; color:#868e96; padding:10px 0; line-height:1.4;">최근 본 공구가<br>없습니다.</div></div>`;
+
+    if (!items || items.length === 0) {
+      recentItemsList.innerHTML = `<div class="recent-placeholder">최근 본<br>공구가 없습니다</div>`;
+      if (btnClearRecent) btnClearRecent.disabled = true;
     } else {
+      if (btnClearRecent) btnClearRecent.disabled = false;
       items.slice(0, 3).forEach((item) => {
-        recentItemsList.insertAdjacentHTML(
-          "beforeend",
-          `<div class="recent-item" title="${item.title}" onclick="window.location.href='../post/post-detail.html'"><img src="${item.image}"></div>`,
-        );
+        const imgPath = item.image || (item.fullData && item.fullData.image);
+        const itemEl = document.createElement("div");
+        itemEl.className = "recent-item";
+        itemEl.innerHTML = `<img src="${imgPath}" onerror="this.src='https://via.placeholder.com/50?text=No+Img'">`;
+
+        // ★ [버그 해결 및 기능 보완] 상세페이지 진입 전 프론트엔드(Edge)에서 거리 검증 및 차단
+        itemEl.onclick = async () => {
+          try {
+            const fullData = item.fullData || item;
+
+            // 1. 기한 만료(또는 완료) 여부 확인 (만료된 목록은 예외적으로 상세 진입 허용)
+            const targetDate = parseCustomDate(fullData.deadline);
+            const isExpired =
+              fullData.status === "closed" ||
+              fullData.status === "expired" ||
+              (targetDate && targetDate - new Date() <= 0);
+
+            // 2. 구매자일 경우에만 지역 범위 검사 수행
+            if (state.role === "buyer" && !isExpired) {
+              const myLocs = await UdongAPI.getUserLocations("buyer");
+              const verifiedLocs = myLocs.filter(
+                (l) => l.verified && !l.expired,
+              );
+
+              if (verifiedLocs.length > 0) {
+                let currentMatched = false;
+                let alternativeMatchedLoc = null;
+
+                // 인증된 모든 지역을 대상으로 거리 검사 (도심 3km, 지방 5km)
+                for (const loc of verifiedLocs) {
+                  const upper = window.getUpperRegion
+                    ? window.getUpperRegion(loc.name)
+                    : loc.name;
+                  const isUrban = [
+                    "서울",
+                    "경기",
+                    "부산",
+                    "인천",
+                    "대구",
+                    "대전",
+                    "광주",
+                  ].some((city) => upper.includes(city));
+                  const radiusLimit = isUrban ? 3000 : 5000;
+
+                  const dist = window.udongCalculateDistance(
+                    loc.lat,
+                    loc.lon,
+                    parseFloat(fullData.lat),
+                    parseFloat(fullData.lon),
+                  );
+
+                  if (dist <= radiusLimit) {
+                    if (loc.selected) {
+                      currentMatched = true;
+                      break;
+                    }
+                    if (!alternativeMatchedLoc) alternativeMatchedLoc = loc;
+                  }
+                }
+
+                if (!currentMatched) {
+                  if (alternativeMatchedLoc) {
+                    // 현재 지역 밖이지만, 다른 인증 지역 반경 안임 -> 해당 지역으로 자동 스위칭
+                    myLocs.forEach(
+                      (l) =>
+                        (l.selected = l.name === alternativeMatchedLoc.name),
+                    );
+                    await UdongAPI.saveUserLocations("buyer", myLocs);
+                    window.dispatchEvent(new Event("locationChange"));
+                  } else {
+                    // 어떤 인증 지역 범위에도 속하지 않음 -> 차단 안내 후 함수 종료
+                    alert(
+                      "인증된 지역 중 어느 지역의 범위에도 해당되지 않아 참여할 수 없는 공구입니다.",
+                    );
+                    return;
+                  }
+                }
+              }
+            }
+
+            // [핵심] 가짜 DB용 로컬 스토리지 저장 로직 완전 삭제 및 파라미터 기반 라우팅 적용
+            const typeStr = String(fullData.id).startsWith("req")
+              ? "request"
+              : "post";
+            window.location.href = `../post/detail.html?id=${fullData.id}&type=${typeStr}`;
+          } catch (e) {
+            console.error("최근 본 공구 클릭 라우팅 에러:", e);
+          }
+        };
+        recentItemsList.appendChild(itemEl);
       });
     }
   }
-
-  if (btnClearRecent)
-    btnClearRecent.addEventListener("click", () => {
-      localStorage.removeItem(getRecentItemsKey());
+  if (btnClearRecent) {
+    btnClearRecent.addEventListener("click", async () => {
+      await UdongAPI.clearRecentItems(state.role);
       renderRecentWidget();
     });
+  }
 
   tabBtns.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -1003,16 +1188,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = document.getElementById("searchHistoryList");
     if (!input || !layer || !list) return;
 
-    const render = () => {
-      const history = JSON.parse(
-        localStorage.getItem(SEARCH_HISTORY_KEY) || "[]",
-      );
+    const render = async () => {
+      const history = await UdongAPI.getSearchHistory();
       list.innerHTML = "";
       if (history.length === 0) {
         list.innerHTML = `<li class="no-history">최근 검색어가 없습니다.</li>`;
         return;
       }
-      history.forEach((k, i) => {
+      history.forEach((k) => {
         const li = document.createElement("li");
         li.className = "history-item";
         li.innerHTML = `<span class="history-text">${k}</span><button type="button" class="btn-delete-history">✕</button>`;
@@ -1022,10 +1205,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         li.querySelector(".btn-delete-history").addEventListener(
           "click",
-          (e) => {
+          async (e) => {
             e.stopPropagation();
-            history.splice(i, 1);
-            localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+            await UdongAPI.deleteSearchHistory(k);
             input.focus();
             render();
           },
@@ -1043,47 +1225,38 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document
       .getElementById("btnDeleteAllHistory")
-      ?.addEventListener("click", () => {
-        localStorage.removeItem(SEARCH_HISTORY_KEY);
+      ?.addEventListener("click", async () => {
+        await UdongAPI.deleteSearchHistory();
         render();
       });
   }
 
-  function saveSearchHistory(keyword) {
-    let history = JSON.parse(
-      localStorage.getItem(SEARCH_HISTORY_KEY) || "[]",
-    ).filter((k) => k !== keyword);
-    history.unshift(keyword);
-    if (history.length > 10) history.pop();
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+  async function saveSearchHistory(keyword) {
+    await UdongAPI.saveSearchHistory(keyword);
   }
 
-  document.addEventListener("keydown", (e) => {
-    if (e.target?.id === "searchInput" && e.key === "Enter") {
-      e.preventDefault();
-      performSearch();
+  // 전역 검색 이벤트 리스너 (common.js에서 보낸 신호 수신)
+  window.addEventListener("executeSearchEvent", () => {
+    const input = document.getElementById("searchInput");
+    if (input) {
+      state.keyword = input.value.trim().toLowerCase();
+      renderRevised(false, true);
     }
   });
+
   document.addEventListener("click", (e) => {
-    if (e.target.closest("#searchBtn")) {
-      e.preventDefault();
-      performSearch();
-    }
     if (e.target.closest("#searchClearBtn")) {
       e.preventDefault();
       resetFilters("full");
       renderRevised();
     }
-    if (e.target.closest(".request-submit-btn")) {
-      if (!IS_LOGGED_IN) {
-        if (confirm("로그인이 필요합니다."))
-          location.href = '../Login.html';
-      } else if (state.role === "buyer" && !state.location)
-        alert("동네 인증이 필요합니다.");
-    }
+    // [수정] .request-submit-btn 관련 전역 클릭 이벤트는 updateLocation 내부의 동적 onclick 속성으로 안전하게 이관되었으므로 삭제함
   });
 
-  productGrid.addEventListener("click", (e) => {
+  // =========================================================================
+  // [수정 후] 이벤트 콜백에 async 추가 및 로컬스토리지 직접 조작 제거
+  // =========================================================================
+  productGrid.addEventListener("click", async (e) => {
     const card = e.target.closest("article");
     if (!card) return;
 
@@ -1092,7 +1265,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         e.stopPropagation();
         if (confirm("로그인이 필요한 서비스입니다.\n로그인하시겠습니까?"))
-          location.href = '../Login.html';
+          location.href = "/pages/login/login.html";
         return;
       }
     }
@@ -1103,55 +1276,46 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target.classList.contains("btn-bid")
     )
       return;
-    if (
-      card.classList.contains("expired") ||
-      card.classList.contains("admin-deleted")
-    )
-      return;
+
+    if (card.classList.contains("admin-deleted")) return;
 
     const zzimBtn = e.target.closest(".btn-zzim");
     const dId = card.dataset.id;
     const isRequest = card.dataset.type === "request";
-    const itemData = isRequest
-      ? MOCK_DB.requests.find((r) => r.id === dId)
-      : MOCK_DB.products.find((p) => p.id === dId);
+    const type = isRequest ? "request" : "post";
+    const itemData = await UdongAPI.getPostDetail(type, dId);
+    if (!itemData) return;
 
+    // ★ 찜하기 로직 API 연동 형태로 수정된 부분
     if (zzimBtn && !isRequest) {
       e.preventDefault();
       e.stopPropagation();
-      let wishlist = JSON.parse(localStorage.getItem(WISHLIST_KEY) || "[]");
-      const idx = wishlist.findIndex(
-        (w) => w.timestamp === itemData.timestamp && w.title === itemData.title,
-      );
-      if (idx > -1) {
-        wishlist.splice(idx, 1);
-        zzimBtn.classList.remove("active");
-      } else {
-        wishlist.unshift({
-          title: itemData.title,
-          timestamp: itemData.createdAt || itemData.timestamp,
-          location: itemData.location,
-          lat: itemData.lat,
-          lon: itemData.lon,
-        });
-        zzimBtn.classList.add("active");
+
+      const result = await UdongAPI.toggleWishlist(itemData);
+
+      if (result) {
+        if (result.isAdded) {
+          zzimBtn.classList.add("active");
+        } else {
+          zzimBtn.classList.remove("active");
+        }
       }
-      localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
       return;
     }
 
     if (isRequest) {
-      localStorage.setItem("current_request", JSON.stringify(itemData));
-      window.location.href = "../post/request-detail.html";
+      // [핵심] 가짜 DB용 로컬 스토리지 저장 로직 완전 삭제 및 파라미터 기반 라우팅 적용
+      window.location.href = `../post/detail.html?id=${itemData.id}&type=request`;
     } else {
-      saveRecentItem({
+      await saveRecentItem({
         id: itemData.id,
         title: itemData.title,
         image: itemData.image,
         fullData: itemData,
       });
-      localStorage.setItem("current_post", JSON.stringify(itemData));
-      window.location.href = "../post/post-detail.html";
+
+      // [핵심] 가짜 DB용 로컬 스토리지 저장 로직 완전 삭제 및 파라미터 기반 라우팅 적용
+      window.location.href = `../post/detail.html?id=${itemData.id}&type=post`;
     }
   });
 
@@ -1160,8 +1324,12 @@ document.addEventListener("DOMContentLoaded", () => {
     updateLocation();
   });
 
+  // ★ 버그 해결: 슬라이더 이벤트가 중복 등록되지 않도록 막는 안전장치 변수
+  let isSliderInitialized = false;
+
   function initSlider() {
     if (!sliderTrack) return;
+
     function updateUI() {
       const minP = (state.priceMin / MAX_PRICE) * 100,
         maxP = (state.priceMax / MAX_PRICE) * 100;
@@ -1176,6 +1344,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("labelMax").innerText =
         state.priceMax.toLocaleString() + "원";
     }
+
     function handleDrag(e, isMin) {
       const rect = sliderTrack.getBoundingClientRect();
       let per = Math.max(
@@ -1186,8 +1355,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isMin) state.priceMin = Math.min(val, state.priceMax - 1000);
       else state.priceMax = Math.max(val, state.priceMin + 1000);
       updateUI();
-      renderRevised(true);
     }
+
     function addList(el, isMin) {
       el.addEventListener("mousedown", (e) => {
         e.preventDefault();
@@ -1197,30 +1366,85 @@ document.addEventListener("DOMContentLoaded", () => {
             document.body.classList.remove("is-dragging");
             document.removeEventListener("mousemove", mv);
             document.removeEventListener("mouseup", up);
+            // 마우스를 뗐을 때 단 한 번만 서버에 데이터를 요청
+            renderRevised(true);
           };
         document.addEventListener("mousemove", mv);
         document.addEventListener("mouseup", up);
       });
     }
-    if (handleMin) addList(handleMin, true);
-    if (handleMax) addList(handleMax, false);
+
+    // ★ 버그 해결: 이벤트 리스너는 최초 1회만 등록하고, 이후 호출 시에는 updateUI()로 바의 위치만 초기화함
+    if (!isSliderInitialized) {
+      if (handleMin) addList(handleMin, true);
+      if (handleMax) addList(handleMax, false);
+      isSliderInitialized = true;
+    }
+
     updateUI();
   }
 
   /* ==========================================================================
-     [9] 초기 실행 (Bootstrap)
+     [9] 초기 실행 (Bootstrap) 및 전역 이벤트 연동
      ========================================================================== */
   const boot = async () => {
-    await MockAPI.init();
-    initializeDBWithCoords();
-    initSlider();
-    updateLocation();
-    initSearchHistory();
+    try {
+      initSlider();
+      await updateLocation();
+      initSearchHistory();
+
+      // ★ 7번 요구사항: 뒤로가기(Bfcache) 진입 시 검색어 잔재 강제 청소
+      window.addEventListener("pageshow", (e) => {
+        if (
+          e.persisted ||
+          performance.getEntriesByType("navigation")[0].type === "back_forward"
+        ) {
+          if (!localStorage.getItem("udong_pending_search")) {
+            resetFilters("full");
+            renderRevised();
+          }
+        }
+      });
+
+      // ★ 2번 & 3번 요구사항: 외부 페이지에서 검색어 넘어왔을 때 텍스트 유지 및 배너 패스 스크롤
+      const pendingSearch = localStorage.getItem("udong_pending_search");
+      if (pendingSearch) {
+        localStorage.removeItem("udong_pending_search");
+
+        setTimeout(() => {
+          state.keyword = pendingSearch;
+          const input = document.getElementById("searchInput");
+          if (input) {
+            input.value = pendingSearch;
+            const clearBtn = document.getElementById("searchClearBtn");
+            if (clearBtn) clearBtn.style.display = "block";
+          }
+          renderRevised(false, true);
+          // 배너 아래로 부드럽게 스크롤
+          const contentArea = document.querySelector(".main-content");
+          if (contentArea) contentArea.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    } catch (error) {
+      console.error("앱 초기화 중 치명적 에러 발생:", error);
+    }
   };
 
+  // 메인에서 직접 검색 실행 시에도 스크롤 연동
+  window.addEventListener("executeSearchEvent", () => {
+    const input = document.getElementById("searchInput");
+    if (input) {
+      state.keyword = input.value.trim().toLowerCase();
+      renderRevised(false, true);
+      const contentArea = document.querySelector(".main-content");
+      if (contentArea) contentArea.scrollIntoView({ behavior: "smooth" });
+    }
+  });
+
+  // ★ 질문하신 부분 (절대 삭제 금지, 원상 복구) ★
   if (typeof window.loadRoadData === "function") {
     window.loadRoadData(() => boot());
   } else {
     boot();
   }
-});
+}); // DOMContentLoaded 끝

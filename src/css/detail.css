@@ -1,0 +1,394 @@
+@charset "utf-8";
+
+/* ★ 1번 이슈 해결: sticky를 파괴하는 부모 요소의 overflow 속성 무력화 */
+html,
+body,
+.main-container,
+.detail-content-wrapper,
+.detail-layout {
+  overflow: visible !important;
+  overflow-x: clip !important;
+}
+
+.bg-light-gray {
+  background-color: #f8f9fa;
+}
+
+.detail-content-wrapper {
+  width: 1000px;
+  max-width: 100%;
+  margin: 40px auto;
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.detail-left {
+  flex: 1;
+  min-width: 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  padding-bottom: 40px;
+  overflow: hidden;
+}
+
+.detail-right {
+  width: 340px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 120px;
+  align-self: flex-start; /* ★ 필수: Flex 컨테이너 내에서 sticky 작동 조건 */
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  border: 1px solid #dee2e6;
+}
+
+/* ==========================================================================
+   왼쪽 영역 스타일
+   ========================================================================== */
+.detail-hero-image {
+  width: 100%;
+  height: 450px;
+  object-fit: cover;
+  background-color: #f1f3f5;
+}
+
+.detail-author-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 30px;
+  border-bottom: 1px solid #f1f3f5;
+}
+.author-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff4e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.author-info {
+  display: flex;
+  flex-direction: column;
+}
+.author-name {
+  font-weight: 800;
+  color: #212529;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.author-loc {
+  font-size: 12px;
+  color: #868e96;
+}
+
+.detail-header-info {
+  padding: 30px;
+  border-bottom: 1px solid #f1f3f5;
+}
+.detail-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #212529;
+  margin-bottom: 16px;
+  line-height: 1.3;
+}
+.detail-meta {
+  font-size: 14px;
+  color: #868e96;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.detail-body {
+  padding: 30px;
+}
+.detail-desc {
+  font-size: 16px;
+  color: #343a40;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  margin-bottom: 40px;
+}
+.detail-map-container {
+  width: 100%;
+  height: 250px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  margin-top: 10px;
+  background: #f8f9fa;
+}
+
+/* ==========================================================================
+   우측 영역 스타일
+   ========================================================================== */
+.right-badge-wrap {
+  margin-bottom: 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.right-price-label {
+  font-size: 14px;
+  color: #868e96;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.right-price-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 24px;
+}
+
+.right-participants-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.part-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #495057;
+}
+.part-text .highlight {
+  color: var(--primary);
+  font-size: 16px;
+}
+.part-remaining {
+  font-size: 12px;
+  color: #868e96;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #f1f3f5;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.progress-fill.full {
+  background-color: #adb5bd;
+}
+
+.right-summary-box {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #495057;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.summary-row span:first-child {
+  font-size: 16px;
+}
+
+.right-action-buttons {
+  display: flex;
+  gap: 10px;
+}
+.btn-action-large {
+  flex: 1;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-align: center;
+}
+.btn-action-large.primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-action-large.primary:hover {
+  background: #e8590c;
+}
+.btn-action-large.secondary {
+  background: #f1f3f5;
+  color: #495057;
+}
+.btn-action-large.secondary:hover {
+  background: #e9ecef;
+}
+.btn-action-large.danger {
+  background: var(--admin-red);
+  color: white;
+}
+.btn-action-large.danger:hover {
+  background: #e03131;
+}
+.btn-action-large:disabled {
+  background: #ced4da;
+  color: white;
+  cursor: not-allowed;
+}
+
+/* 찜하기(하트) 버튼 */
+.btn-zzim-large {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  background: white;
+  font-size: 24px;
+  color: #ced4da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+.btn-zzim-large:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+.btn-zzim-large.active {
+  color: #fa5252;
+  border-color: #ffc9c9;
+  background: #fff5f5;
+}
+
+/* 우동페이(결제) 팝업 모달 */
+.payment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(3px);
+}
+.payment-modal-box {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+.pay-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #212529;
+}
+.pay-amount-box {
+  background: #fff4e6;
+  border: 1px solid #ffe8cc;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.pay-amount-text {
+  font-size: 14px;
+  color: #ff6f0f;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.pay-amount-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: #212529;
+}
+.pay-btn-wrap {
+  display: flex;
+  gap: 10px;
+}
+
+/* 입찰/아코디언 영역 */
+.bids-section {
+  margin-top: 40px;
+  border-top: 2px solid #f1f3f5;
+  padding-top: 30px;
+}
+.bids-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+.accordion-item {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.accordion-header {
+  padding: 16px;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  transition: background-color 0.2s;
+}
+.accordion-header:hover {
+  background: #f8f9fa;
+}
+.accordion-body {
+  padding: 0 16px;
+  max-height: 0;
+  overflow: hidden;
+  transition: 0.3s ease-out;
+  background: #f8f9fa;
+}
+.accordion-body.open {
+  padding: 16px;
+  max-height: 500px;
+  border-top: 1px solid #dee2e6;
+}
+
+/* ==========================================================================
+   [추가] PC 환경 2단 레이아웃 (좌측 본문, 우측 고정 플로팅 박스)
+   ========================================================================== */
+.detail-layout {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 992px) {
+  .detail-layout {
+    flex-direction: column;
+  }
+  .detail-right {
+    width: 100%;
+    position: static;
+  }
+}

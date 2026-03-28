@@ -1026,12 +1026,9 @@ input:checked + .slider.round:before {
 }
 
 .product-card.expired {
-  cursor: default;
+  cursor: pointer; /* 3번 요구사항 반영: 클릭 가능함을 나타내기 위해 포인터로 변경 */
 }
-.product-card.expired:hover {
-  transform: none !important;
-  box-shadow: none !important;
-}
+
 .product-card.expired > .product-image,
 .product-card.expired > .product-info {
   opacity: 0.6;
