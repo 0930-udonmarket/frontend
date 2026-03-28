@@ -119,7 +119,16 @@
                         </div>
                         <div class="product-info">
                             <div class="product-title">${review.content || "내용 없음"}</div>
-                            <div class="product-meta">${dateFormatting} • 별점: ${'⭐'.repeat(review.rating || 0)}</div>
+                            <div class="product-meta">${dateFormatting}</div>
+                            <div class="stars">
+                                ${[1,2,3,4,5].map(i => `
+                                    <div class="star ${i <= (review.rating || 0) ? 'active' : ''}">
+                                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                        </svg>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
                         <div class="icon-container">
                             <div class="move-icon" style="cursor:pointer" onclick="location.href='./detail.html?id=${review.id}'">
